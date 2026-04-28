@@ -1,0 +1,63 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f4f6f8;
+  color: #1f2937;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background-color: #111827;
+  color: #ffffff;
+  padding: 1.5rem;
+}
+
+.sidebar h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.sidebar-subtitle {
+  margin: 0.5rem 0 1.5rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.nav-link {
+  color: #d1d5db;
+  text-decoration: none;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.45rem;
+}
+
+.nav-link:hover {
+  background-color: #1f2937;
+}
+
+.nav-link.active {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.content {
+  padding: 2rem;
+}
