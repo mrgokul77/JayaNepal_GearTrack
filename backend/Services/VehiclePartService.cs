@@ -30,11 +30,10 @@ public class VehiclePartService : IVehiclePartService
         var entity = new VehiclePart
         {
             Name = dto.Name,
-            PartNumber = dto.PartNumber,
-            Category = dto.Category,
+            Description = dto.Description,
             Price = dto.Price,
-            QuantityInStock = dto.QuantityInStock,
-            RoleVisibility = dto.RoleVisibility
+            StockQuantity = dto.StockQuantity,
+            VendorId = dto.VendorId
         };
 
         var created = await _repository.AddAsync(entity);
@@ -47,11 +46,10 @@ public class VehiclePartService : IVehiclePartService
         {
             Id = part.Id,
             Name = part.Name,
-            PartNumber = part.PartNumber,
-            Category = part.Category,
+            Description = part.Description,
             Price = part.Price,
-            QuantityInStock = part.QuantityInStock,
-            RoleVisibility = part.RoleVisibility
+            StockQuantity = part.StockQuantity,
+            VendorId = part.VendorId
         };
     }
 }
