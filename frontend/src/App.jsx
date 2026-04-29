@@ -4,7 +4,6 @@ import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
 import CustomerPage from './pages/CustomerPage'
 import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
 import StaffPage from './pages/StaffPage'
 
 function App() {
@@ -12,7 +11,6 @@ function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
 
       <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
         <Route element={<DashboardLayout />}>
@@ -31,8 +29,6 @@ function App() {
           <Route path="/customer" element={<CustomerPage />} />
         </Route>
       </Route>
-
-      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }

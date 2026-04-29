@@ -14,15 +14,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendDevPolicy", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -50,31 +41,6 @@ builder.Services.AddScoped<IVehiclePartService, VehiclePartService>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-
-    await dbContext.Database.MigrateAsync();
-
-    var adminEmail = "admin@geartrack.com";
-    var existingAdmin = await dbContext.Users.FirstOrDefaultAsync(user => user.Email == adminEmail);
-    if (existingAdmin is null)
-    {
-        var adminUser = new User
-        {
-            FullName = "System Admin",
-            Email = adminEmail,
-            Role = "Admin",
-            CreatedAt = DateTime.UtcNow
-        };
-        adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin123");
-
-        dbContext.Users.Add(adminUser);
-        await dbContext.SaveChangesAsync();
-    }
-}
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -82,7 +48,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("FrontendDevPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 

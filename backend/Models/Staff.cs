@@ -1,16 +1,14 @@
 namespace backend.Models;
 
-public class Customer
+public class Staff
 {
     public int Id { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
-    public string Address { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string Role { get; set; } = "Staff";
     public int UserId { get; set; }
 
     public User User { get; set; } = null!;
-    public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
     public ICollection<SalesInvoice> SalesInvoices { get; set; } = new List<SalesInvoice>();
 }

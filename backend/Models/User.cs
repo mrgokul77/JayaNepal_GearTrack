@@ -10,4 +10,5 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Customer? CustomerProfile { get; set; }
+    public Staff? StaffProfile { get; set; }
 }
