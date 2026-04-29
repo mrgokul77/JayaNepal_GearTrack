@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems => Set<PurchaseInvoiceItem>();
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
+    public DbSet<Part> Parts => Set<Part>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -159,6 +160,14 @@ public class ApplicationDbContext : DbContext
                 .WithMany(pv => pv.SalesInvoiceItems)
                 .HasForeignKey(s => s.PartId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Part>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Name).HasMaxLength(200).IsRequired();
+            entity.Property(p => p.Price).HasColumnType("numeric(12,2)");
+            entity.Property(p => p.StockQuantity).IsRequired();
         });
     }
 }
