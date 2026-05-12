@@ -1,0 +1,195 @@
+.purchase-invoice-page {
+  max-width: 960px;
+}
+
+.purchase-invoice-page h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+}
+
+.purchase-invoice-lead {
+  margin: 0 0 1.25rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.purchase-invoice-panel {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.purchase-invoice-panel h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.purchase-form-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+@media (min-width: 640px) {
+  .purchase-form-grid.two {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.purchase-form-grid label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.purchase-form-grid select,
+.purchase-form-grid input {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.45rem;
+  font-size: 0.92rem;
+}
+
+.purchase-form-grid select:focus,
+.purchase-form-grid input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.purchase-line-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.purchase-line-table th,
+.purchase-line-table td {
+  padding: 0.5rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.purchase-line-table th {
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.purchase-line-table select,
+.purchase-line-table input {
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+  font-size: 0.88rem;
+}
+
+.purchase-line-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.purchase-line-actions button {
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.45rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.purchase-line-actions .btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.purchase-line-actions .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.purchase-line-actions .btn-secondary {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.purchase-line-actions .btn-ghost {
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.purchase-line-actions .link-muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.purchase-line-actions .link-muted:hover {
+  color: #2563eb;
+}
+
+.purchase-total {
+  margin-top: 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.purchase-msg-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem;
+}
+
+.purchase-msg-success {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.45rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.purchase-invoice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.purchase-invoice-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.purchase-invoice-list li:last-child {
+  border-bottom: none;
+}
+
+.purchase-invoice-list .meta {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.purchase-invoice-list .lines {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.85rem;
+  color: #374151;
+}

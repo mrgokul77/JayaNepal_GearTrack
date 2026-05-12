@@ -7,6 +7,8 @@ function AdminPage() {
       <p>Manage users, parts catalog, and full inventory insights.</p>
       <p>
         <Link to="/admin/vendors">Manage vendors</Link>
+        {' · '}
+        <Link to="/admin/purchase-invoices">Purchase invoices</Link>
       </p>
     </section>
   )

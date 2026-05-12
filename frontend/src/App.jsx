@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
+import PurchaseInvoice from './pages/admin/PurchaseInvoice'
 import VendorManagement from './pages/admin/VendorManagement'
 import CustomerPage from './pages/CustomerPage'
 import LoginPage from './pages/LoginPage'
@@ -20,6 +21,7 @@ function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/vendors" element={<VendorManagement />} />
+          <Route path="/admin/purchase-invoices" element={<PurchaseInvoice />} />
         </Route>
       </Route>
 
