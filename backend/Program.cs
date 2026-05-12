@@ -49,6 +49,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<IVehiclePartRepository, VehiclePartRepository>();
 builder.Services.AddScoped<IVehiclePartService, VehiclePartService>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 var app = builder.Build();
 

@@ -5,6 +5,7 @@ import AdminPage from './pages/AdminPage'
 import CustomerPage from './pages/CustomerPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import RegisterCustomer from './pages/staff/RegisterCustomer'
 import StaffPage from './pages/StaffPage'
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['Staff']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/staff" element={<StaffPage />} />
+          <Route path="/staff/register-customer" element={<RegisterCustomer />} />
         </Route>
       </Route>
 

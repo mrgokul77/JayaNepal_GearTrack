@@ -1,0 +1,133 @@
+.register-customer-page {
+  max-width: 720px;
+}
+
+.register-customer-page h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+}
+
+.register-customer-lead {
+  margin: 0 0 1.5rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.register-customer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.register-section {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.register-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  color: #111827;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.register-field-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 560px) {
+  .register-field-grid.two-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.register-field-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.register-section label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.register-section input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.45rem;
+  font-size: 0.95rem;
+}
+
+.register-section input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.register-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.register-actions button {
+  padding: 0.65rem 1.1rem;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.45rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.register-actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.register-actions .link-muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.register-actions .link-muted:hover {
+  color: #2563eb;
+}
+
+.register-error {
+  color: #b91c1c;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.register-success {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  padding: 0.85rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.register-success strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.register-password-hint {
+  margin-top: 0.5rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}

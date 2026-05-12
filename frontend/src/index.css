@@ -62,6 +62,15 @@ body {
   padding: 2rem;
 }
 
+.content a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.content a:hover {
+  text-decoration: underline;
+}
+
 .login-page {
   min-height: 100vh;
   display: grid;

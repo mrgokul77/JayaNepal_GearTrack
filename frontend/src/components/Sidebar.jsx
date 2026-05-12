@@ -2,7 +2,10 @@ import { NavLink } from 'react-router-dom'
 
 const navByRole = {
   Admin: [{ path: '/admin', label: 'Admin' }],
-  Staff: [{ path: '/staff', label: 'Staff' }],
+  Staff: [
+    { path: '/staff', label: 'Staff' },
+    { path: '/staff/register-customer', label: 'Register Customer' },
+  ],
   Customer: [{ path: '/customer', label: 'Customer' }],
 }
 
