@@ -10,6 +10,10 @@ function StaffPage() {
         {' — look up a customer by name, phone, ID, or vehicle number.'}
       </p>
       <p>
+        <Link to="/staff/customer-history">Customer History</Link>
+        {" — view a customer's profile, vehicles, and sales history by customer ID."}
+      </p>
+      <p>
         <Link to="/staff/register-customer">Register Customer</Link>
         {' — add a new customer with vehicle details.'}
       </p>
