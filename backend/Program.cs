@@ -55,6 +55,8 @@ builder.Services.AddScoped<IVendorRepository, VendorRepository>();
 builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
 builder.Services.AddScoped<IPurchaseInvoiceService, PurchaseInvoiceService>();
+builder.Services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
+builder.Services.AddScoped<ISalesInvoiceService, SalesInvoiceService>();
 
 var app = builder.Build();
 
