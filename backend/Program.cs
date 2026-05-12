@@ -51,6 +51,8 @@ builder.Services.AddScoped<IVehiclePartRepository, VehiclePartRepository>();
 builder.Services.AddScoped<IVehiclePartService, VehiclePartService>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IVendorRepository, VendorRepository>();
+builder.Services.AddScoped<IVendorService, VendorService>();
 
 var app = builder.Build();
 

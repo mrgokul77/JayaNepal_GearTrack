@@ -81,6 +81,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(v => v.Phone).HasMaxLength(30);
             entity.Property(v => v.Email).HasMaxLength(150);
             entity.Property(v => v.Address).HasMaxLength(300);
+            entity.Property(v => v.CreatedAt).IsRequired();
         });
 
         modelBuilder.Entity<Staff>(entity =>

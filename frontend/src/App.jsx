@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
+import VendorManagement from './pages/admin/VendorManagement'
 import CustomerPage from './pages/CustomerPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -18,6 +19,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/vendors" element={<VendorManagement />} />
         </Route>
       </Route>
 
