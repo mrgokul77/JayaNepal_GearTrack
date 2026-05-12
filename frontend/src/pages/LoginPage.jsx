@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
 function getErrorMessage(error, fallback) {
@@ -11,9 +11,18 @@ function getErrorMessage(error, fallback) {
 
 function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+
+  useEffect(() => {
+    if (location.state?.registered) {
+      setSuccessMessage('Account created successfully. You can sign in now.')
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.pathname, location.state, navigate])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -23,6 +32,7 @@ function LoginPage() {
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    setSuccessMessage('')
     setIsLoading(true)
 
     try {
@@ -33,6 +43,7 @@ function LoginPage() {
       localStorage.setItem('role', role)
       localStorage.setItem('userId', String(userId ?? ''))
       localStorage.setItem('fullName', fullName ?? '')
+      localStorage.setItem('email', formData.email.trim().toLowerCase())
 
       if (role === 'Admin') {
         navigate('/admin', { replace: true })
@@ -53,6 +64,8 @@ function LoginPage() {
       <form className="login-card" onSubmit={handleSubmit}>
         <h1>GearTrack</h1>
         <p className="login-card-lead">Sign in with your email and password.</p>
+
+        {successMessage ? <p className="success-message">{successMessage}</p> : null}
 
         <label htmlFor="email">Email</label>
         <input

@@ -16,11 +16,16 @@ namespace backend.Controllers;
 public class SalesInvoiceController : ControllerBase
 {
     private readonly ISalesInvoiceService _salesInvoiceService;
+    private readonly IEmailService _emailService;
     private readonly ApplicationDbContext _dbContext;
 
-    public SalesInvoiceController(ISalesInvoiceService salesInvoiceService, ApplicationDbContext dbContext)
+    public SalesInvoiceController(
+        ISalesInvoiceService salesInvoiceService,
+        IEmailService emailService,
+        ApplicationDbContext dbContext)
     {
         _salesInvoiceService = salesInvoiceService;
+        _emailService = emailService;
         _dbContext = dbContext;
     }
 
@@ -55,6 +60,35 @@ public class SalesInvoiceController : ControllerBase
         }
 
         return Ok(invoice);
+    }
+
+    /// <summary>Sends the invoice summary to the customer's email address on file.</summary>
+    [HttpPost("{id:int}/send-email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> SendInvoiceEmail(int id)
+    {
+        try
+        {
+            await _emailService.SendInvoiceEmailAsync(id);
+            return Ok(new { message = "Invoice email was sent to the customer." });
+        }
+        catch (InvalidOperationException ex) when (ex.Message == EmailService.InvoiceNotFoundMessage)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                $"Failed to send email: {ex.Message}");
+        }
     }
 
     /// <summary>

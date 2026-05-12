@@ -149,6 +149,26 @@
   border: 1px solid #fecaca;
 }
 
+.sales-btn-email {
+  background: #fff;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+  white-space: nowrap;
+}
+
+.sales-btn-email:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.sales-btn-email:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sales-invoice-actions-cell {
+  white-space: nowrap;
+}
+
 .sales-msg-error {
   color: #b91c1c;
   font-size: 0.9rem;

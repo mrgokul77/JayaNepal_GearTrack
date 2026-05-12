@@ -6,6 +6,7 @@ import PurchaseInvoice from './pages/admin/PurchaseInvoice'
 import RegisterStaff from './pages/admin/RegisterStaff'
 import VendorManagement from './pages/admin/VendorManagement'
 import CustomerPage from './pages/CustomerPage'
+import ProfilePage from './pages/customer/ProfilePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RegisterCustomer from './pages/staff/RegisterCustomer'
@@ -43,6 +44,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['Customer']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/customer" element={<CustomerPage />} />
+          <Route path="/customer/profile" element={<ProfilePage />} />
         </Route>
       </Route>
 

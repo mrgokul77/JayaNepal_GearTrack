@@ -41,6 +41,8 @@ function SalesInvoice() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [listLoading, setListLoading] = useState(true)
+  const [sendingEmailInvoiceId, setSendingEmailInvoiceId] = useState(null)
+  const [emailFeedback, setEmailFeedback] = useState(null)
 
   const loadLists = useCallback(async () => {
     setListLoading(true)
@@ -157,6 +159,23 @@ function SalesInvoice() {
       setError(getErrorMessage(requestError, 'Could not create sales invoice.'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSendInvoiceEmail = async (invoiceId) => {
+    setEmailFeedback(null)
+    setSendingEmailInvoiceId(invoiceId)
+    try {
+      const { data } = await api.post(`/sales-invoices/${invoiceId}/send-email`)
+      const msg = typeof data?.message === 'string' ? data.message : 'Invoice email was sent to the customer.'
+      setEmailFeedback({ type: 'success', text: msg })
+    } catch (requestError) {
+      setEmailFeedback({
+        type: 'error',
+        text: getErrorMessage(requestError, 'Could not send invoice email.'),
+      })
+    } finally {
+      setSendingEmailInvoiceId(null)
     }
   }
 
@@ -305,6 +324,16 @@ function SalesInvoice() {
 
       <section className="sales-invoice-panel">
         <h2>All sales invoices</h2>
+        {emailFeedback?.type === 'success' ? (
+          <p className="sales-msg-success" role="status">
+            {emailFeedback.text}
+          </p>
+        ) : null}
+        {emailFeedback?.type === 'error' ? (
+          <p className="sales-msg-error" role="alert">
+            {emailFeedback.text}
+          </p>
+        ) : null}
         {listLoading ? (
           <p>Loading…</p>
         ) : invoices.length === 0 ? (
@@ -321,11 +350,13 @@ function SalesInvoice() {
                   <th>Subtotal</th>
                   <th>Discount</th>
                   <th>Due</th>
+                  <th>Email</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map((inv) => {
                   const due = Number(inv.totalAmount) - Number(inv.discountApplied || 0)
+                  const sendingThis = sendingEmailInvoiceId === inv.id
                   return (
                     <tr key={inv.id}>
                       <td>{inv.id}</td>
@@ -335,6 +366,16 @@ function SalesInvoice() {
                       <td>{formatMoney(inv.totalAmount)}</td>
                       <td>{formatMoney(inv.discountApplied)}</td>
                       <td>{formatMoney(due)}</td>
+                      <td className="sales-invoice-actions-cell">
+                        <button
+                          type="button"
+                          className="sales-btn sales-btn-email"
+                          onClick={() => void handleSendInvoiceEmail(inv.id)}
+                          disabled={sendingThis}
+                        >
+                          {sendingThis ? 'Sending…' : 'Send email'}
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}

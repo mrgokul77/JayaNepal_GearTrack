@@ -37,7 +37,7 @@ function RegisterPage() {
         phone: formData.phone,
         password: formData.password,
       })
-      navigate('/login', { replace: true })
+      navigate('/login', { replace: true, state: { registered: true } })
     } catch (requestError) {
       setError(getErrorMessage(requestError, 'Registration failed. Please try again.'))
     } finally {

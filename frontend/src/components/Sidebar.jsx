@@ -13,7 +13,10 @@ const navByRole = {
     { path: '/staff/customer-history', label: 'Customer History' },
     { path: '/staff/register-customer', label: 'Register Customer' },
   ],
-  Customer: [{ path: '/customer', label: 'Customer' }],
+  Customer: [
+    { path: '/customer', label: 'Customer' },
+    { path: '/customer/profile', label: 'My Profile' },
+  ],
 }
 
 function Sidebar() {

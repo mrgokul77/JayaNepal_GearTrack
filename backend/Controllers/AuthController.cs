@@ -58,31 +58,44 @@ public class AuthController : ControllerBase
             return Conflict("A user with this email already exists.");
         }
 
-        var user = new User
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
         {
-            FullName = request.FullName.Trim(),
-            Email = normalizedEmail,
-            Role = "Customer",
-            CreatedAt = DateTime.UtcNow
-        };
-        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+            var user = new User
+            {
+                FullName = request.FullName.Trim(),
+                Email = normalizedEmail,
+                Role = "Customer",
+                CreatedAt = DateTime.UtcNow,
+            };
+            user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
 
-        _dbContext.Users.Add(user);
-        await _dbContext.SaveChangesAsync();
+            _dbContext.Users.Add(user);
+            await _dbContext.SaveChangesAsync();
 
-        var customer = new Customer
+            var customer = new Customer
+            {
+                FullName = request.FullName.Trim(),
+                Email = normalizedEmail,
+                Phone = request.Phone.Trim(),
+                Address = string.Empty,
+                UserId = user.Id,
+                CreatedAt = DateTime.UtcNow,
+            };
+            _dbContext.Customers.Add(customer);
+            await _dbContext.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+        }
+        catch
         {
-            FullName = user.FullName,
-            Email = user.Email,
-            Phone = request.Phone.Trim(),
-            UserId = user.Id,
-            CreatedAt = DateTime.UtcNow
-        };
-        _dbContext.Customers.Add(customer);
-        await _dbContext.SaveChangesAsync();
+            await transaction.RollbackAsync();
+            throw;
+        }
 
-        var token = GenerateJwtToken(user);
-        return Ok(BuildAuthResponse(user, token));
+        var registeredUser = await _dbContext.Users.FirstAsync(u => u.Email == normalizedEmail);
+        var token = GenerateJwtToken(registeredUser);
+        return Ok(BuildAuthResponse(registeredUser, token));
     }
 
     [HttpPost("login")]
