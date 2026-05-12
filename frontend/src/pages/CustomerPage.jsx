@@ -18,6 +18,18 @@ function CustomerPage() {
         <Link to="/customer/profile">My Profile</Link>
         {' — update your details and manage your vehicles.'}
       </p>
+      <p>
+        <Link to="/customer/appointments">Appointments</Link>
+        {' — book service visits and cancel pending bookings.'}
+      </p>
+      <p>
+        <Link to="/customer/part-requests">Part requests</Link>
+        {' — ask for parts that are unavailable or not in stock.'}
+      </p>
+      <p>
+        <Link to="/customer/reviews">Service reviews</Link>
+        {' — rate your experience and leave feedback.'}
+      </p>
     </section>
   )
 }

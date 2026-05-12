@@ -12,6 +12,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+// Controllers under Controllers/ (including Appointment, PartRequest, ServiceReview) are discovered automatically; no extra registration needed beyond MapControllers().
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();

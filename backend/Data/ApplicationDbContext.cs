@@ -20,6 +20,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
     public DbSet<SalesInvoiceItem> SalesInvoiceItems => Set<SalesInvoiceItem>();
     public DbSet<Part> Parts => Set<Part>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<PartRequest> PartRequests => Set<PartRequest>();
+    public DbSet<ServiceReview> ServiceReviews => Set<ServiceReview>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -169,6 +172,47 @@ public class ApplicationDbContext : DbContext
             entity.Property(p => p.Name).HasMaxLength(200).IsRequired();
             entity.Property(p => p.Price).HasColumnType("numeric(12,2)");
             entity.Property(p => p.StockQuantity).IsRequired();
+        });
+
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.ServiceType).HasMaxLength(150).IsRequired();
+            entity.Property(a => a.Status).HasMaxLength(30).IsRequired();
+            entity.Property(a => a.Notes).HasMaxLength(1000);
+            entity.Property(a => a.CreatedAt).IsRequired();
+
+            entity.HasOne(a => a.Customer)
+                .WithMany(c => c.Appointments)
+                .HasForeignKey(a => a.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PartRequest>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.PartName).HasMaxLength(200).IsRequired();
+            entity.Property(p => p.Description).HasMaxLength(1000);
+            entity.Property(p => p.Status).HasMaxLength(30).IsRequired();
+            entity.Property(p => p.CreatedAt).IsRequired();
+
+            entity.HasOne(p => p.Customer)
+                .WithMany(c => c.PartRequests)
+                .HasForeignKey(p => p.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ServiceReview>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Rating).IsRequired();
+            entity.Property(s => s.Comment).HasMaxLength(2000);
+            entity.Property(s => s.CreatedAt).IsRequired();
+
+            entity.HasOne(s => s.Customer)
+                .WithMany(c => c.ServiceReviews)
+                .HasForeignKey(s => s.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
