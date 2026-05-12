@@ -3,6 +3,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
 import PurchaseInvoice from './pages/admin/PurchaseInvoice'
+import RegisterStaff from './pages/admin/RegisterStaff'
 import VendorManagement from './pages/admin/VendorManagement'
 import CustomerPage from './pages/CustomerPage'
 import LoginPage from './pages/LoginPage'
@@ -21,6 +22,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/register-staff" element={<RegisterStaff />} />
           <Route path="/admin/vendors" element={<VendorManagement />} />
           <Route path="/admin/purchase-invoices" element={<PurchaseInvoice />} />
         </Route>
