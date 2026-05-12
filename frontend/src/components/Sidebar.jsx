@@ -1,12 +1,15 @@
 import { NavLink } from 'react-router-dom'
 
-const navItems = [
-  { path: '/admin', label: 'Admin' },
-  { path: '/staff', label: 'Staff' },
-  { path: '/customer', label: 'Customer' },
-]
+const navByRole = {
+  Admin: [{ path: '/admin', label: 'Admin' }],
+  Staff: [{ path: '/staff', label: 'Staff' }],
+  Customer: [{ path: '/customer', label: 'Customer' }],
+}
 
 function Sidebar() {
+  const role = localStorage.getItem('role')
+  const navItems = navByRole[role] ?? []
+
   return (
     <aside className="sidebar">
       <h2>GearTrack</h2>

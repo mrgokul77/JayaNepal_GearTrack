@@ -91,6 +91,26 @@ body {
   color: #4b5563;
 }
 
+.login-card-lead {
+  margin: 0 0 0.75rem;
+}
+
+.login-card-footer {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.login-card a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.login-card a:hover {
+  text-decoration: underline;
+}
+
 .login-card input {
   padding: 0.55rem 0.7rem;
   border: 1px solid #d1d5db;

@@ -4,6 +4,7 @@ using System.Text;
 using backend.Data;
 using backend.DTOs;
 using backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,8 @@ namespace backend.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private static readonly string[] ValidRoles = ["Admin", "Staff", "Customer"];
+    private static readonly string[] StaffOrAdminRoles = ["Admin", "Staff"];
+
     private readonly ApplicationDbContext _dbContext;
     private readonly IConfiguration _configuration;
     private readonly IPasswordHasher<User> _passwordHasher;
@@ -30,17 +32,23 @@ public class AuthController : ControllerBase
         _passwordHasher = passwordHasher;
     }
 
+    /// <summary>Customer self-registration only.</summary>
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
+    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] CustomerRegisterRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
             return BadRequest("Email and password are required.");
         }
 
-        if (!ValidRoles.Contains(request.Role))
+        if (string.IsNullOrWhiteSpace(request.FullName))
         {
-            return BadRequest("Role must be Admin, Staff, or Customer.");
+            return BadRequest("Full name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            return BadRequest("Phone is required.");
         }
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
@@ -54,7 +62,7 @@ public class AuthController : ControllerBase
         {
             FullName = request.FullName.Trim(),
             Email = normalizedEmail,
-            Role = request.Role,
+            Role = "Customer",
             CreatedAt = DateTime.UtcNow
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
@@ -62,8 +70,19 @@ public class AuthController : ControllerBase
         _dbContext.Users.Add(user);
         await _dbContext.SaveChangesAsync();
 
+        var customer = new Customer
+        {
+            FullName = user.FullName,
+            Email = user.Email,
+            Phone = request.Phone.Trim(),
+            UserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        _dbContext.Customers.Add(customer);
+        await _dbContext.SaveChangesAsync();
+
         var token = GenerateJwtToken(user);
-        return Ok(new AuthResponseDto { Token = token, Role = user.Role });
+        return Ok(BuildAuthResponse(user, token));
     }
 
     [HttpPost("login")]
@@ -88,12 +107,85 @@ public class AuthController : ControllerBase
         }
 
         var token = GenerateJwtToken(user);
-        return Ok(new AuthResponseDto { Token = token, Role = user.Role });
+        return Ok(BuildAuthResponse(user, token));
     }
+
+    /// <summary>Admin creates Staff or additional Admin accounts.</summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("register-staff")]
+    public async Task<ActionResult<AuthResponseDto>> RegisterStaff([FromBody] RegisterStaffRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest("Email and password are required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.FullName))
+        {
+            return BadRequest("Full name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            return BadRequest("Phone is required.");
+        }
+
+        var role = request.Role?.Trim() ?? string.Empty;
+        if (!StaffOrAdminRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest("Role must be Staff or Admin.");
+        }
+
+        var normalizedRole = role.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? "Admin" : "Staff";
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+        if (existingUser is not null)
+        {
+            return Conflict("A user with this email already exists.");
+        }
+
+        var user = new User
+        {
+            FullName = request.FullName.Trim(),
+            Email = normalizedEmail,
+            Role = normalizedRole,
+            CreatedAt = DateTime.UtcNow
+        };
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+
+        _dbContext.Users.Add(user);
+        await _dbContext.SaveChangesAsync();
+
+        if (normalizedRole == "Staff")
+        {
+            var staff = new Staff
+            {
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = request.Phone.Trim(),
+                Role = "Staff",
+                UserId = user.Id
+            };
+            _dbContext.StaffMembers.Add(staff);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var token = GenerateJwtToken(user);
+        return Ok(BuildAuthResponse(user, token));
+    }
+
+    private static AuthResponseDto BuildAuthResponse(User user, string token) =>
+        new()
+        {
+            Token = token,
+            Role = user.Role,
+            UserId = user.Id,
+            FullName = user.FullName
+        };
 
     private string GenerateJwtToken(User user)
     {
-        // Read JWT options from configuration and sign token with symmetric key.
         var jwt = _configuration.GetSection("Jwt");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

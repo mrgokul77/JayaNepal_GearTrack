@@ -30,11 +30,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
     });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddScoped<IVehiclePartRepository, VehiclePartRepository>();
 builder.Services.AddScoped<IVehiclePartService, VehiclePartService>();
@@ -48,9 +59,36 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
+await SeedDefaultAdminIfNeededAsync(app);
+
 app.Run();
+
+static async Task SeedDefaultAdminIfNeededAsync(WebApplication application)
+{
+    await using var scope = application.Services.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+
+    const string adminEmail = "admin@geartrack.com";
+    if (await db.Users.AnyAsync(u => u.Email == adminEmail))
+    {
+        return;
+    }
+
+    var admin = new User
+    {
+        FullName = "System Admin",
+        Email = adminEmail,
+        Role = "Admin",
+        CreatedAt = DateTime.UtcNow
+    };
+    admin.PasswordHash = passwordHasher.HashPassword(admin, "Admin123");
+    db.Users.Add(admin);
+    await db.SaveChangesAsync();
+}

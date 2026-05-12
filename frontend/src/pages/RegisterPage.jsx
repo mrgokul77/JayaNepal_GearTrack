@@ -9,9 +9,14 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
-function LoginPage() {
+function RegisterPage() {
   const navigate = useNavigate()
-  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+  })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -26,23 +31,15 @@ function LoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await api.post('/auth/login', formData)
-      const { token, role, userId, fullName } = response.data
-
-      localStorage.setItem('token', token)
-      localStorage.setItem('role', role)
-      localStorage.setItem('userId', String(userId ?? ''))
-      localStorage.setItem('fullName', fullName ?? '')
-
-      if (role === 'Admin') {
-        navigate('/admin', { replace: true })
-      } else if (role === 'Staff') {
-        navigate('/staff', { replace: true })
-      } else {
-        navigate('/customer', { replace: true })
-      }
+      await api.post('/auth/register', {
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+      })
+      navigate('/login', { replace: true })
     } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Login failed. Check your credentials.'))
+      setError(getErrorMessage(requestError, 'Registration failed. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -51,16 +48,38 @@ function LoginPage() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1>GearTrack</h1>
-        <p className="login-card-lead">Sign in with your email and password.</p>
+        <h1>Create account</h1>
+        <p className="login-card-lead">Register as a customer to shop and track orders.</p>
+
+        <label htmlFor="fullName">Full name</label>
+        <input
+          id="fullName"
+          name="fullName"
+          type="text"
+          autoComplete="name"
+          value={formData.fullName}
+          onChange={handleChange}
+          required
+        />
 
         <label htmlFor="email">Email</label>
         <input
           id="email"
           name="email"
           type="email"
-          autoComplete="username"
+          autoComplete="email"
           value={formData.email}
+          onChange={handleChange}
+          required
+        />
+
+        <label htmlFor="phone">Phone</label>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          value={formData.phone}
           onChange={handleChange}
           required
         />
@@ -70,7 +89,7 @@ function LoginPage() {
           id="password"
           name="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           value={formData.password}
           onChange={handleChange}
           required
@@ -79,15 +98,15 @@ function LoginPage() {
         {error && <p className="error-message">{error}</p>}
 
         <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Signing in…' : 'Sign in'}
+          {isLoading ? 'Creating account…' : 'Register'}
         </button>
 
         <p className="login-card-footer">
-          <Link to="/register">Register as Customer</Link>
+          Already have an account? <Link to="/login">Login</Link>
         </p>
       </form>
     </div>
   )
 }
 
-export default LoginPage
+export default RegisterPage
