@@ -6,6 +6,10 @@ function StaffPage() {
       <h1>Staff Workspace</h1>
       <p>Track stock movement, process orders, and update availability.</p>
       <p>
+        <Link to="/staff/search-customer">Search Customers</Link>
+        {' — look up a customer by name, phone, ID, or vehicle number.'}
+      </p>
+      <p>
         <Link to="/staff/register-customer">Register Customer</Link>
         {' — add a new customer with vehicle details.'}
       </p>

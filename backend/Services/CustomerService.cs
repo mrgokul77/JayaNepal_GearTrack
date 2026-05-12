@@ -15,6 +15,7 @@ namespace backend.Services;
 public class CustomerService : ICustomerService
 {
     private const int MinVehicleYear = 1900;
+    private const int MaxSearchQueryLength = 200;
     private readonly ICustomerRepository _customerRepository;
     private readonly ApplicationDbContext _dbContext;
     private readonly IPasswordHasher<User> _passwordHasher;
@@ -87,6 +88,29 @@ public class CustomerService : ICustomerService
     {
         var list = await _customerRepository.GetAllAsync();
         return list.Select(MapToResponse).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<CustomerResponseDto>> SearchCustomersAsync(string query)
+    {
+        if (query is null)
+        {
+            throw new ArgumentNullException(nameof(query));
+        }
+
+        var trimmed = query.Trim();
+        if (trimmed.Length == 0)
+        {
+            return new List<CustomerResponseDto>();
+        }
+
+        if (trimmed.Length > MaxSearchQueryLength)
+        {
+            throw new ArgumentException($"Search query must be at most {MaxSearchQueryLength} characters.", nameof(query));
+        }
+
+        var entities = await _customerRepository.SearchAsync(trimmed);
+        return entities.Select(MapToResponse).ToList();
     }
 
     /// <inheritdoc />

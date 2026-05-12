@@ -1,3 +1,4 @@
+using System.Globalization;
 using backend.Data;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
@@ -49,5 +50,42 @@ public class CustomerRepository : ICustomerRepository
             .AsNoTracking()
             .Include(c => c.Vehicles)
             .FirstOrDefaultAsync(c => c.Email == normalized);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<Customer>> SearchAsync(string query)
+    {
+        var term = query.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(term))
+        {
+            return new List<Customer>();
+        }
+
+        var idMatches = int.TryParse(term, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id);
+
+        // Resolve matching customer ids first so we never duplicate rows when a vehicle predicate is used.
+        var customerIds = await _dbContext.Customers
+            .AsNoTracking()
+            .Where(c =>
+                c.FullName.ToLower().Contains(term) ||
+                c.Phone.ToLower().Contains(term) ||
+                c.Email.ToLower().Contains(term) ||
+                (idMatches && c.Id == id) ||
+                c.Vehicles.Any(v => v.VehicleNumber.ToLower().Contains(term)))
+            .Select(c => c.Id)
+            .Distinct()
+            .ToListAsync();
+
+        if (customerIds.Count == 0)
+        {
+            return new List<Customer>();
+        }
+
+        return await _dbContext.Customers
+            .AsNoTracking()
+            .Include(c => c.Vehicles)
+            .Where(c => customerIds.Contains(c.Id))
+            .OrderBy(c => c.FullName)
+            .ToListAsync();
     }
 }

@@ -18,4 +18,10 @@ public interface ICustomerRepository
 
     /// <summary>Finds a customer by email (case-insensitive), including vehicles.</summary>
     Task<Customer?> GetByEmailAsync(string email);
+
+    /// <summary>
+    /// Finds customers whose name, phone, email, id, or any linked vehicle number matches the query (case-insensitive).
+    /// Each customer is returned once with all vehicles included.
+    /// </summary>
+    Task<List<Customer>> SearchAsync(string query);
 }

@@ -73,6 +73,29 @@ public class CustomerController : ControllerBase
         return Ok(list);
     }
 
+    /// <summary>Staff/admin search by customer name, phone, email, id, or vehicle number (case-insensitive).</summary>
+    /// <remarks>Declared before <c>GET /{id}</c> so <c>search</c> is not captured as an integer route value.</remarks>
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(List<CustomerResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<List<CustomerResponseDto>>> Search([FromQuery] string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return BadRequest("A non-empty search query is required.");
+        }
+
+        try
+        {
+            var results = await _customerService.SearchCustomersAsync(query);
+            return Ok(results);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     /// <summary>Gets a single customer by id, including vehicles.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(CustomerResponseDto), StatusCodes.Status200OK)]

@@ -9,6 +9,7 @@ import CustomerPage from './pages/CustomerPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RegisterCustomer from './pages/staff/RegisterCustomer'
+import SearchCustomer from './pages/staff/SearchCustomer'
 import SalesInvoice from './pages/staff/SalesInvoice'
 import StaffPage from './pages/StaffPage'
 
@@ -32,6 +33,7 @@ function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/staff" element={<StaffPage />} />
           <Route path="/staff/register-customer" element={<RegisterCustomer />} />
+          <Route path="/staff/search-customer" element={<SearchCustomer />} />
           <Route path="/staff/sales-invoice" element={<SalesInvoice />} />
         </Route>
       </Route>
