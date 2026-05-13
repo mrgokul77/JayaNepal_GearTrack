@@ -50,7 +50,7 @@ function SalesInvoice() {
     try {
       const [cRes, pRes, iRes] = await Promise.all([
         api.get('/customers'),
-        api.get('/VehicleParts'),
+        api.get('/vehicle-parts'),
         api.get('/sales-invoices'),
       ])
       setCustomers(cRes.data ?? [])

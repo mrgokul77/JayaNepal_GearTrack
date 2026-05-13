@@ -23,10 +23,25 @@ public class VehiclePartRepository : IVehiclePartRepository
         return await _dbContext.VehicleParts.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id);
     }
 
+    public async Task<VehiclePart?> GetTrackedByIdAsync(int id)
+    {
+        return await _dbContext.VehicleParts.FirstOrDefaultAsync(v => v.Id == id);
+    }
+
+    public async Task<bool> VendorExistsAsync(int vendorId)
+    {
+        return await _dbContext.Vendors.AsNoTracking().AnyAsync(v => v.Id == vendorId);
+    }
+
     public async Task<VehiclePart> AddAsync(VehiclePart part)
     {
         _dbContext.VehicleParts.Add(part);
         await _dbContext.SaveChangesAsync();
         return part;
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _dbContext.SaveChangesAsync();
     }
 }

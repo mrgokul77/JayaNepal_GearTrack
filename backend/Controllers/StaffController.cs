@@ -1,5 +1,6 @@
 using backend.Data;
 using backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateStaff([FromBody] StaffMemberRequest request)
     {
         var validationError = ValidateRequest(request);
@@ -53,6 +55,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetAllStaff()
     {
         var staffList = await _context.StaffMembers
@@ -64,6 +67,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetStaffById(int id)
     {
         var staff = await _context.StaffMembers
@@ -79,6 +83,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateStaff(int id, [FromBody] StaffMemberRequest request)
     {
         var validationError = ValidateRequest(request);
@@ -118,6 +123,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteStaff(int id)
     {
         var existingStaff = await _context.StaffMembers.FirstOrDefaultAsync(s => s.Id == id);

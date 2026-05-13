@@ -18,3 +18,8 @@ public class CreateVehiclePartDto
     public int StockQuantity { get; set; }
     public int VendorId { get; set; }
 }
+
+/// <summary>Same shape as create; used for catalog updates (Admin).</summary>
+public class UpdateVehiclePartDto : CreateVehiclePartDto
+{
+}

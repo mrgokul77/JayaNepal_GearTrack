@@ -42,7 +42,7 @@ function PurchaseInvoice() {
     try {
       const [vRes, pRes, iRes] = await Promise.all([
         api.get('/vendors'),
-        api.get('/VehicleParts'),
+        api.get('/vehicle-parts'),
         api.get('/purchase-invoices'),
       ])
       setVendors(vRes.data ?? [])

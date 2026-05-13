@@ -37,7 +37,16 @@ function LoginPage() {
 
     try {
       const response = await api.post('/auth/login', formData)
-      const { token, role, userId, fullName } = response.data
+      const body = response.data ?? {}
+      const token = body.token ?? body.Token
+      const role = body.role ?? body.Role
+      const userId = body.userId ?? body.UserId
+      const fullName = body.fullName ?? body.FullName
+
+      if (!token || !role) {
+        setError('Invalid response from server. Please try again.')
+        return
+      }
 
       localStorage.setItem('token', token)
       localStorage.setItem('role', role)
@@ -53,6 +62,13 @@ function LoginPage() {
         navigate('/customer', { replace: true })
       }
     } catch (requestError) {
+      if (requestError.response?.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('role')
+        localStorage.removeItem('userId')
+        localStorage.removeItem('fullName')
+        localStorage.removeItem('email')
+      }
       setError(getErrorMessage(requestError, 'Login failed. Check your credentials.'))
     } finally {
       setIsLoading(false)

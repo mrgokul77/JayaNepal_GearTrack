@@ -1,12 +1,15 @@
 using backend.Data;
 using backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Controllers;
 
+/// <summary>Legacy <see cref="Part"/> table (not used by sales/purchase flows). Admin-only.</summary>
 [ApiController]
 [Route("api/admin/parts")]
+[Authorize(Roles = "Admin")]
 public class PartsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

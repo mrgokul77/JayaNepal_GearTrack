@@ -30,6 +30,8 @@ function AdminPage() {
         {' · '}
         <Link to="/admin/vendors">Manage vendors</Link>
         {' · '}
+        <Link to="/admin/parts">Vehicle parts</Link>
+        {' · '}
         <Link to="/admin/purchase-invoices">Purchase invoices</Link>
         {' · '}
         <Link to="/admin/notifications">
