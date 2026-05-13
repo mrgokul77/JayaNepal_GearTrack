@@ -8,6 +8,7 @@ const navByRole = {
     { path: '/admin/purchase-invoices', label: 'Purchase Invoices' },
     { path: '/admin/notifications', label: 'Notifications' },
     { path: '/admin/loyalty', label: 'Loyalty Program' },
+    { path: '/admin/financial-reports', label: 'Financial Reports' },
   ],
   Staff: [
     { path: '/staff', label: 'Staff' },

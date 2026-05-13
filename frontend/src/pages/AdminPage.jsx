@@ -38,6 +38,8 @@ function AdminPage() {
         </Link>
         {' · '}
         <Link to="/admin/loyalty">Loyalty program</Link>
+        {' · '}
+        <Link to="/admin/financial-reports">Financial reports</Link>
       </p>
     </section>
   )

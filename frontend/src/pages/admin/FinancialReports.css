@@ -1,0 +1,233 @@
+/* Admin financial reports — daily / monthly / yearly */
+
+.financial-reports-page {
+  max-width: 1120px;
+}
+
+.financial-reports-back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.financial-reports-back:hover {
+  text-decoration: underline;
+}
+
+.financial-reports-page h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  color: #111827;
+}
+
+.financial-reports-lead {
+  margin: 0 0 1.25rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+  max-width: 52rem;
+  line-height: 1.5;
+}
+
+.financial-reports-banner {
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.financial-reports-banner-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.financial-reports-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.financial-reports-tab {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.financial-reports-tab:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.financial-reports-tab-active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.financial-reports-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.financial-reports-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.financial-reports-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.financial-reports-field input,
+.financial-reports-field select {
+  min-width: 10rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.45rem;
+  font-size: 0.95rem;
+  color: #111827;
+  background: #fff;
+}
+
+.financial-reports-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.financial-reports-refresh {
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.financial-reports-refresh:hover {
+  background: #dbeafe;
+}
+
+.financial-reports-muted {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.financial-reports-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.financial-reports-card {
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: #fff;
+}
+
+.financial-reports-card-sales {
+  border-left: 4px solid #059669;
+  background: linear-gradient(135deg, #ecfdf5 0%, #fff 55%);
+}
+
+.financial-reports-card-purchases {
+  border-left: 4px solid #d97706;
+  background: linear-gradient(135deg, #fffbeb 0%, #fff 55%);
+}
+
+.financial-reports-card-profit {
+  border-left: 4px solid #2563eb;
+  background: linear-gradient(135deg, #eff6ff 0%, #fff 55%);
+}
+
+.financial-reports-card-discounts {
+  border-left: 4px solid #7c3aed;
+  background: linear-gradient(135deg, #f5f3ff 0%, #fff 55%);
+}
+
+.financial-reports-card-count {
+  border-left: 4px solid #64748b;
+  background: linear-gradient(135deg, #f8fafc 0%, #fff 55%);
+}
+
+.financial-reports-card-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.financial-reports-card-value {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.financial-reports-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem 1.15rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.financial-reports-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  color: #111827;
+}
+
+.financial-reports-table-wrap {
+  overflow-x: auto;
+}
+
+.financial-reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.financial-reports-table th,
+.financial-reports-table td {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.financial-reports-table th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.financial-reports-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
