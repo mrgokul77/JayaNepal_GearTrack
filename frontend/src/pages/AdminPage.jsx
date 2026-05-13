@@ -1,6 +1,26 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import api from '../services/api'
 
 function AdminPage() {
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await api.get('/notifications')
+        if (cancelled || !Array.isArray(data)) return
+        setUnreadCount(data.filter((n) => !n.isRead).length)
+      } catch {
+        if (!cancelled) setUnreadCount(0)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <section>
       <h1>Admin Dashboard</h1>
@@ -11,6 +31,11 @@ function AdminPage() {
         <Link to="/admin/vendors">Manage vendors</Link>
         {' · '}
         <Link to="/admin/purchase-invoices">Purchase invoices</Link>
+        {' · '}
+        <Link to="/admin/notifications">
+          Notifications
+          {unreadCount > 0 ? <span className="admin-inline-badge">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
+        </Link>
       </p>
     </section>
   )

@@ -66,6 +66,70 @@ public class EmailService : IEmailService
         await client.DisconnectAsync(true);
     }
 
+    /// <inheritdoc />
+    public async Task SendCreditReminderEmailAsync(
+        string toEmail,
+        string customerName,
+        IReadOnlyList<CreditReminderLine> lines,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateSmtpSettings();
+
+        if (string.IsNullOrWhiteSpace(toEmail))
+        {
+            throw new InvalidOperationException(CustomerEmailMissingMessage);
+        }
+
+        if (lines is null || lines.Count == 0)
+        {
+            throw new InvalidOperationException("No invoice lines supplied for credit reminder.");
+        }
+
+        var body = BuildCreditReminderBody(customerName, lines);
+
+        var message = new MimeMessage();
+        message.From.Add(MailboxAddress.Parse(_settings.SenderEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail.Trim()));
+        message.Subject = "GearTrack — friendly reminder about your account balance";
+
+        message.Body = new TextPart("plain") { Text = body };
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls, cancellationToken);
+        await client.AuthenticateAsync(_settings.SenderEmail, _settings.SenderPassword, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+    }
+
+    private static string BuildCreditReminderBody(string customerName, IReadOnlyList<CreditReminderLine> lines)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Hello ").Append(customerName.Trim()).AppendLine(",");
+        sb.AppendLine();
+        sb.AppendLine(
+            "This is a friendly reminder regarding your GearTrack purchase(s) where a discount or credit was applied more than 30 days ago.");
+        sb.AppendLine("Please review the following invoice(s) and arrange any outstanding balance with our team if applicable.");
+        sb.AppendLine();
+        sb.AppendLine("Invoice reference:");
+        sb.AppendLine(new string('-', 48));
+
+        foreach (var line in lines.OrderBy(l => l.SaleDate))
+        {
+            sb.Append("- Invoice #").Append(line.InvoiceId.ToString(CultureInfo.InvariantCulture));
+            sb.Append(" | Date: ").AppendLine(line.SaleDate.ToString("u", CultureInfo.InvariantCulture));
+            sb.Append("  Sale total: ").Append(FormatMoney(line.TotalAmount));
+            sb.Append(" | Discount / credit applied: ").AppendLine(FormatMoney(line.DiscountApplied));
+        }
+
+        sb.AppendLine(new string('-', 48));
+        sb.AppendLine();
+        sb.AppendLine("If you have already settled this, you may disregard this email.");
+        sb.AppendLine();
+        sb.AppendLine("— GearTrack Vehicle Parts");
+
+        return sb.ToString();
+    }
+
     private void ValidateSmtpSettings()
     {
         if (string.IsNullOrWhiteSpace(_settings.SmtpHost)

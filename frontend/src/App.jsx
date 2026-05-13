@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
+import Notifications from './pages/admin/Notifications'
 import PurchaseInvoice from './pages/admin/PurchaseInvoice'
 import RegisterStaff from './pages/admin/RegisterStaff'
 import VendorManagement from './pages/admin/VendorManagement'
@@ -33,6 +34,7 @@ function App() {
           <Route path="/admin/register-staff" element={<RegisterStaff />} />
           <Route path="/admin/vendors" element={<VendorManagement />} />
           <Route path="/admin/purchase-invoices" element={<PurchaseInvoice />} />
+          <Route path="/admin/notifications" element={<Notifications />} />
         </Route>
       </Route>
 

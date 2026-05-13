@@ -6,6 +6,7 @@ const navByRole = {
     { path: '/admin/register-staff', label: 'Register Staff' },
     { path: '/admin/vendors', label: 'Vendors' },
     { path: '/admin/purchase-invoices', label: 'Purchase Invoices' },
+    { path: '/admin/notifications', label: 'Notifications' },
   ],
   Staff: [
     { path: '/staff', label: 'Staff' },

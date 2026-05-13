@@ -80,6 +80,23 @@ body {
   padding: 2rem;
 }
 
+.admin-inline-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.4rem;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: #dc2626;
+  border-radius: 999px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
 .content a {
   color: #2563eb;
   text-decoration: none;

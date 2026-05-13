@@ -62,6 +62,7 @@ builder.Services.AddScoped<ISalesInvoiceService, SalesInvoiceService>();
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection(EmailSettings.SectionName));
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
 
