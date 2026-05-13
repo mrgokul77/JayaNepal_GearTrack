@@ -23,6 +23,10 @@ function CustomerPage() {
         {' — view your purchase and service appointment history.'}
       </p>
       <p>
+        <Link to="/customer/loyalty">My Loyalty</Link>
+        {' — see how the 10% big-order discount works and track your savings.'}
+      </p>
+      <p>
         <Link to="/customer/appointments">Appointments</Link>
         {' — book service visits and cancel pending bookings.'}
       </p>

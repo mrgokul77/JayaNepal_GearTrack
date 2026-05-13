@@ -7,6 +7,7 @@ const navByRole = {
     { path: '/admin/vendors', label: 'Vendors' },
     { path: '/admin/purchase-invoices', label: 'Purchase Invoices' },
     { path: '/admin/notifications', label: 'Notifications' },
+    { path: '/admin/loyalty', label: 'Loyalty Program' },
   ],
   Staff: [
     { path: '/staff', label: 'Staff' },
@@ -19,6 +20,7 @@ const navByRole = {
     { path: '/customer', label: 'Customer' },
     { path: '/customer/profile', label: 'My Profile' },
     { path: '/customer/history', label: 'My History' },
+    { path: '/customer/loyalty', label: 'My Loyalty' },
     { path: '/customer/appointments', label: 'Appointments' },
     { path: '/customer/part-requests', label: 'Part Requests' },
     { path: '/customer/reviews', label: 'Reviews' },

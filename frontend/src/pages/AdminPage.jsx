@@ -36,6 +36,8 @@ function AdminPage() {
           Notifications
           {unreadCount > 0 ? <span className="admin-inline-badge">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
         </Link>
+        {' · '}
+        <Link to="/admin/loyalty">Loyalty program</Link>
       </p>
     </section>
   )

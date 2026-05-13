@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
+import LoyaltyStats from './pages/admin/LoyaltyStats'
 import Notifications from './pages/admin/Notifications'
 import PurchaseInvoice from './pages/admin/PurchaseInvoice'
 import RegisterStaff from './pages/admin/RegisterStaff'
@@ -10,6 +11,7 @@ import CustomerPage from './pages/CustomerPage'
 import Appointments from './pages/customer/Appointments'
 import PartRequests from './pages/customer/PartRequests'
 import ProfilePage from './pages/customer/ProfilePage'
+import LoyaltyBenefits from './pages/customer/LoyaltyBenefits'
 import PurchaseHistory from './pages/customer/PurchaseHistory'
 import ServiceReviews from './pages/customer/ServiceReviews'
 import LoginPage from './pages/LoginPage'
@@ -35,6 +37,7 @@ function App() {
           <Route path="/admin/vendors" element={<VendorManagement />} />
           <Route path="/admin/purchase-invoices" element={<PurchaseInvoice />} />
           <Route path="/admin/notifications" element={<Notifications />} />
+          <Route path="/admin/loyalty" element={<LoyaltyStats />} />
         </Route>
       </Route>
 
@@ -57,6 +60,7 @@ function App() {
           <Route path="/customer/reviews" element={<ServiceReviews />} />
           <Route path="/customer/profile" element={<ProfilePage />} />
           <Route path="/customer/history" element={<PurchaseHistory />} />
+          <Route path="/customer/loyalty" element={<LoyaltyBenefits />} />
         </Route>
       </Route>
 
