@@ -14,6 +14,10 @@ function StaffPage() {
         {" — view a customer's profile, vehicles, and sales history by customer ID."}
       </p>
       <p>
+        <Link to="/staff/customer-reports">Customer Reports</Link>
+        {' — regular customers, high spenders, and pending credits from sales data.'}
+      </p>
+      <p>
         <Link to="/staff/register-customer">Register Customer</Link>
         {' — add a new customer with vehicle details.'}
       </p>

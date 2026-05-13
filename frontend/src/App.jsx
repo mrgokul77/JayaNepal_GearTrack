@@ -15,6 +15,7 @@ import RegisterPage from './pages/RegisterPage'
 import RegisterCustomer from './pages/staff/RegisterCustomer'
 import SearchCustomer from './pages/staff/SearchCustomer'
 import CustomerHistory from './pages/staff/CustomerHistory'
+import CustomerReports from './pages/staff/CustomerReports'
 import SalesInvoice from './pages/staff/SalesInvoice'
 import StaffPage from './pages/StaffPage'
 
@@ -40,6 +41,7 @@ function App() {
           <Route path="/staff/register-customer" element={<RegisterCustomer />} />
           <Route path="/staff/search-customer" element={<SearchCustomer />} />
           <Route path="/staff/customer-history" element={<CustomerHistory />} />
+          <Route path="/staff/customer-reports" element={<CustomerReports />} />
           <Route path="/staff/sales-invoice" element={<SalesInvoice />} />
         </Route>
       </Route>

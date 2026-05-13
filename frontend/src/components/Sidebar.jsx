@@ -11,6 +11,7 @@ const navByRole = {
     { path: '/staff', label: 'Staff' },
     { path: '/staff/search-customer', label: 'Search Customers' },
     { path: '/staff/customer-history', label: 'Customer History' },
+    { path: '/staff/customer-reports', label: 'Customer Reports' },
     { path: '/staff/register-customer', label: 'Register Customer' },
   ],
   Customer: [
