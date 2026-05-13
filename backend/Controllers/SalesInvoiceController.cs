@@ -62,33 +62,20 @@ public class SalesInvoiceController : ControllerBase
         return Ok(invoice);
     }
 
-    /// <summary>Sends the invoice summary to the customer's email address on file.</summary>
+    /// <summary>Sends the invoice as an HTML email to the customer's address on file (SMTP from <c>EmailSettings</c>).</summary>
     [HttpPost("{id:int}/send-email")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> SendInvoiceEmail(int id)
     {
-        try
+        var sent = await _emailService.SendInvoiceEmailAsync(id);
+        if (!sent)
         {
-            await _emailService.SendInvoiceEmailAsync(id);
-            return Ok(new { message = "Invoice email was sent to the customer." });
+            return BadRequest(
+                "Could not send the invoice email. Check that the invoice exists, the customer has an email on file, and EmailSettings (SMTP) are configured.");
         }
-        catch (InvalidOperationException ex) when (ex.Message == EmailService.InvoiceNotFoundMessage)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                $"Failed to send email: {ex.Message}");
-        }
+
+        return Ok(new { message = "Invoice sent to customer" });
     }
 
     /// <summary>

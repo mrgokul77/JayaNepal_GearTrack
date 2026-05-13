@@ -166,9 +166,8 @@ function SalesInvoice() {
     setEmailFeedback(null)
     setSendingEmailInvoiceId(invoiceId)
     try {
-      const { data } = await api.post(`/sales-invoices/${invoiceId}/send-email`)
-      const msg = typeof data?.message === 'string' ? data.message : 'Invoice email was sent to the customer.'
-      setEmailFeedback({ type: 'success', text: msg })
+      await api.post(`/sales-invoices/${invoiceId}/send-email`)
+      setEmailFeedback({ type: 'success', text: 'Invoice sent to customer' })
     } catch (requestError) {
       setEmailFeedback({
         type: 'error',
