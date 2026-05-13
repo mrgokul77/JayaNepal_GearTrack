@@ -17,6 +17,7 @@ const navByRole = {
   Customer: [
     { path: '/customer', label: 'Customer' },
     { path: '/customer/profile', label: 'My Profile' },
+    { path: '/customer/history', label: 'My History' },
     { path: '/customer/appointments', label: 'Appointments' },
     { path: '/customer/part-requests', label: 'Part Requests' },
     { path: '/customer/reviews', label: 'Reviews' },

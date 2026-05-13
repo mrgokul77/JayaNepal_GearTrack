@@ -9,6 +9,7 @@ import CustomerPage from './pages/CustomerPage'
 import Appointments from './pages/customer/Appointments'
 import PartRequests from './pages/customer/PartRequests'
 import ProfilePage from './pages/customer/ProfilePage'
+import PurchaseHistory from './pages/customer/PurchaseHistory'
 import ServiceReviews from './pages/customer/ServiceReviews'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -53,6 +54,7 @@ function App() {
           <Route path="/customer/part-requests" element={<PartRequests />} />
           <Route path="/customer/reviews" element={<ServiceReviews />} />
           <Route path="/customer/profile" element={<ProfilePage />} />
+          <Route path="/customer/history" element={<PurchaseHistory />} />
         </Route>
       </Route>
 

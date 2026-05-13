@@ -19,6 +19,10 @@ function CustomerPage() {
         {' — update your details and manage your vehicles.'}
       </p>
       <p>
+        <Link to="/customer/history">My History</Link>
+        {' — view your purchase and service appointment history.'}
+      </p>
+      <p>
         <Link to="/customer/appointments">Appointments</Link>
         {' — book service visits and cancel pending bookings.'}
       </p>

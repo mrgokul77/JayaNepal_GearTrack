@@ -1,0 +1,133 @@
+/* Purchase & service history (Feature 14) — tabs and expandable invoice rows */
+
+.purchase-history-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0;
+}
+
+.purchase-history-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 0.5rem 0.5rem 0 0;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+}
+
+.purchase-history-tab:hover {
+  color: #374151;
+  background: #f9fafb;
+}
+
+.purchase-history-tab.active {
+  color: #111827;
+  border-bottom-color: #2563eb;
+}
+
+.purchase-history-table-wrap {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.purchase-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.purchase-history-table th,
+.purchase-history-table td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.purchase-history-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.purchase-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.purchase-history-row-expandable {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.purchase-history-row-expandable:hover {
+  background: #fafafa;
+}
+
+.purchase-history-row-expandable.expanded {
+  background: #eff6ff;
+}
+
+.purchase-history-expand-hint {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.purchase-history-detail-row td {
+  padding: 0;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.purchase-history-detail-inner {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.purchase-history-detail-inner h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.purchase-history-items-mini {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.purchase-history-items-mini th,
+.purchase-history-items-mini td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.purchase-history-items-mini th {
+  text-align: left;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.purchase-history-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.purchase-history-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.purchase-history-table th.purchase-history-num,
+.purchase-history-table td.purchase-history-num {
+  text-align: right;
+}
