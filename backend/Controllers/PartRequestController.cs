@@ -98,6 +98,50 @@ public class PartRequestController : ControllerBase
         return Ok(rows.Select(Map).ToList());
     }
 
+    /// <summary>Updates the status of a part request (Admin only).</summary>
+    [HttpPatch("{id}/status")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(PartRequestResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PartRequestResponseDto>> UpdateStatus(int id, [FromBody] UpdatePartRequestStatusDto dto)
+    {
+        Console.WriteLine($"[PartRequest PATCH] Received request to update ID={id}");
+        Console.WriteLine($"[PartRequest PATCH] DTO Status value: '{dto.Status}'");
+        
+        if (string.IsNullOrWhiteSpace(dto.Status))
+        {
+            Console.WriteLine($"[PartRequest PATCH] Status is null or whitespace");
+            return BadRequest("Status is required.");
+        }
+
+        var validStatuses = new[] { "Pending", "Ordered", "Available" };
+        if (!validStatuses.Contains(dto.Status, StringComparer.Ordinal))
+        {
+            Console.WriteLine($"[PartRequest PATCH] Status '{dto.Status}' is not valid. Valid: {string.Join(", ", validStatuses)}");
+            return BadRequest($"Invalid status. Must be one of: {string.Join(", ", validStatuses)}");
+        }
+
+        var entity = await _db.PartRequests.Include(p => p.Customer).FirstOrDefaultAsync(p => p.Id == id);
+        if (entity is null)
+        {
+            Console.WriteLine($"[PartRequest PATCH] Part request with ID={id} not found");
+            return NotFound("Part request not found.");
+        }
+
+        Console.WriteLine($"[PartRequest PATCH] Found entity. Old status: '{entity.Status}', New status: '{dto.Status}'");
+        entity.Status = dto.Status;
+        _db.PartRequests.Update(entity);
+        
+        Console.WriteLine($"[PartRequest PATCH] Calling SaveChangesAsync...");
+        await _db.SaveChangesAsync();
+        Console.WriteLine($"[PartRequest PATCH] SaveChangesAsync completed. Status is now: '{entity.Status}'");
+
+        return Ok(Map(entity));
+    }
+
     private async Task<(ActionResult? Error, int CustomerId)> ResolveCustomerAsync()
     {
         if (!TryResolveUserId(out var userId))

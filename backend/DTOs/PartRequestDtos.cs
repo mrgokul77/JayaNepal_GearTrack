@@ -16,3 +16,8 @@ public class PartRequestResponseDto
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
+
+public class UpdatePartRequestStatusDto
+{
+    public string Status { get; set; } = string.Empty;
+}
