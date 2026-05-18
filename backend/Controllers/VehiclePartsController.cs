@@ -87,4 +87,20 @@ public class VehiclePartsController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var part = await _service.GetByIdAsync(id);
+        if (part is null)
+        {
+            return NotFound();
+        }
+
+        await _service.DeleteAsync(id);
+        return NoContent();
+    }
 }

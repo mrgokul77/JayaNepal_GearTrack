@@ -6,7 +6,8 @@ using backend.Options;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MimeKit;
 
 namespace backend.Services;
@@ -20,11 +21,13 @@ public class EmailService : IEmailService
 
     private readonly ApplicationDbContext _db;
     private readonly EmailSettings _settings;
+    private readonly ILogger<EmailService> _logger;
 
-    public EmailService(ApplicationDbContext db, IOptions<EmailSettings> options)
+    public EmailService(ApplicationDbContext db, IConfiguration configuration, ILogger<EmailService> logger)
     {
         _db = db;
-        _settings = options.Value;
+        _settings = EmailSettings.FromConfiguration(configuration);
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -56,14 +59,9 @@ public class EmailService : IEmailService
         message.From.Add(MailboxAddress.Parse(_settings.SenderEmail));
         message.To.Add(MailboxAddress.Parse(toEmail));
         message.Subject = $"GearTrack sales invoice #{invoice.Id}";
-
         message.Body = new TextPart("plain") { Text = body };
 
-        using var client = new SmtpClient();
-        await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
-        await client.AuthenticateAsync(_settings.SenderEmail, _settings.SenderPassword);
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
+        await SendViaSmtpAsync(message);
     }
 
     /// <inheritdoc />
@@ -91,15 +89,54 @@ public class EmailService : IEmailService
         message.From.Add(MailboxAddress.Parse(_settings.SenderEmail));
         message.To.Add(MailboxAddress.Parse(toEmail.Trim()));
         message.Subject = "GearTrack — friendly reminder about your account balance";
-
         message.Body = new TextPart("plain") { Text = body };
 
+        await SendViaSmtpAsync(message, cancellationToken);
+    }
+
+    /// <summary>
+    /// Sends mail via MailKit (not System.Net.Mail). MailKit has no UseDefaultCredentials or EnableSsl;
+    /// TLS is chosen via <see cref="SecureSocketOptions"/> on Connect, and auth is explicit on AuthenticateAsync.
+    /// </summary>
+    private async Task SendViaSmtpAsync(MimeMessage message, CancellationToken cancellationToken = default)
+    {
+        var socketOptions = ResolveSecureSocketOptions(_settings.SmtpHost, _settings.SmtpPort);
+
+        _logger.LogInformation(
+            "SMTP send: Host={Host}, Port={Port}, SecureSocket={SecureSocket}, SenderEmail={SenderEmail}, " +
+            "PasswordLength={PasswordLength}, PasswordContainedWhitespace={PasswordHadWhitespace}, " +
+            "Client=MailKit (explicit AuthenticateAsync; no UseDefaultCredentials)",
+            _settings.SmtpHost,
+            _settings.SmtpPort,
+            socketOptions,
+            _settings.SenderEmail,
+            _settings.SenderPassword.Length,
+            _settings.PasswordContainedWhitespace);
+
         using var client = new SmtpClient();
-        await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls, cancellationToken);
-        await client.AuthenticateAsync(_settings.SenderEmail, _settings.SenderPassword, cancellationToken);
+        await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, socketOptions, cancellationToken);
+
+        if (!client.IsAuthenticated)
+        {
+            await client.AuthenticateAsync(
+                Encoding.UTF8,
+                _settings.SenderEmail,
+                _settings.SenderPassword,
+                cancellationToken);
+        }
+
         await client.SendAsync(message, cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);
     }
+
+    private static SecureSocketOptions ResolveSecureSocketOptions(string host, int port) =>
+        port switch
+        {
+            465 => SecureSocketOptions.SslOnConnect,
+            587 => SecureSocketOptions.StartTls,
+            _ when host.Contains("gmail", StringComparison.OrdinalIgnoreCase) => SecureSocketOptions.StartTls,
+            _ => SecureSocketOptions.Auto,
+        };
 
     private static string BuildCreditReminderBody(string customerName, IReadOnlyList<CreditReminderLine> lines)
     {
@@ -132,15 +169,7 @@ public class EmailService : IEmailService
 
     private void ValidateSmtpSettings()
     {
-        if (string.IsNullOrWhiteSpace(_settings.SmtpHost)
-            || string.IsNullOrWhiteSpace(_settings.SenderEmail)
-            || string.IsNullOrWhiteSpace(_settings.SenderPassword)
-            || _settings.SmtpPort <= 0)
-        {
-            throw new InvalidOperationException(SmtpNotConfiguredMessage);
-        }
-
-        if (string.Equals(_settings.SenderPassword.Trim(), "your-app-password", StringComparison.Ordinal))
+        if (!_settings.IsConfigured)
         {
             throw new InvalidOperationException(SmtpNotConfiguredMessage);
         }

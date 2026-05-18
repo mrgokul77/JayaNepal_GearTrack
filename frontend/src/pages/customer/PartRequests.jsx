@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerProfile.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -12,12 +10,9 @@ function getErrorMessage(error, fallback) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
+  if (!value) return '\u2014'
   try {
-    return new Date(value).toLocaleString(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    })
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   } catch {
     return String(value)
   }
@@ -27,9 +22,14 @@ function emptyForm() {
   return { partName: '', description: '' }
 }
 
-/**
- * Customer part requests: ask for unavailable or hard-to-find parts.
- */
+function statusBadgeClass(status) {
+  const s = (status || '').toLowerCase()
+  if (s === 'pending') return 'badge badge-warning'
+  if (s === 'fulfilled' || s === 'completed') return 'badge badge-success'
+  if (s === 'rejected') return 'badge badge-danger'
+  return 'badge badge-neutral'
+}
+
 function PartRequests() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -86,54 +86,103 @@ function PartRequests() {
   }
 
   return (
-    <section className="customer-profile-page">
-      <Link to="/customer" className="customer-profile-back">
-        ← Customer portal
-      </Link>
-      <h1>Part requests</h1>
-      <p className="customer-profile-lead">Request parts that are out of stock or not listed in the catalog.</p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Part requests</h1>
+          <p className="page-subtitle">Request parts that are out of stock or not listed in the catalog.</p>
+        </div>
+      </div>
 
-      {error ? <div className="customer-profile-error">{error}</div> : null}
-      {success ? <div className="customer-profile-success">{success}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
-      <div className="customer-profile-card">
-        <h2>Request a part</h2>
-        <form className="customer-profile-form" onSubmit={handleSubmit}>
-          <label>
-            Part name
-            <input type="text" name="partName" value={form.partName} onChange={handleChange} required placeholder="e.g. Front brake pads (OEM)" />
-          </label>
-          <label>
-            Description (optional)
-            <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Vehicle, year, VIN fragment, or other details" />
-          </label>
-          <button type="submit" className="customer-profile-primary" disabled={submitting}>
-            {submitting ? 'Submitting…' : 'Submit request'}
-          </button>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Request a part</div>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="form-group form-grid-full">
+              <label className="form-label" htmlFor="partName">Part name</label>
+              <input
+                id="partName"
+                type="text"
+                name="partName"
+                className="form-input"
+                value={form.partName}
+                onChange={handleChange}
+                required
+                placeholder="e.g. Front brake pads (OEM)"
+              />
+            </div>
+            <div className="form-group form-grid-full">
+              <label className="form-label" htmlFor="description">Description (optional)</label>
+              <textarea
+                id="description"
+                name="description"
+                className="form-textarea"
+                value={form.description}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Vehicle, year, VIN fragment, or other details"
+              />
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Submitting&hellip;
+                </>
+              ) : (
+                'Submit request'
+              )}
+            </button>
+          </div>
         </form>
       </div>
 
-      <div className="customer-profile-card">
-        <h2>Your requests</h2>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Your requests</div>
+          <span className="muted">{items.length} total</span>
+        </div>
         {loading ? (
-          <p className="customer-profile-muted">Loading…</p>
+          <div className="loading-state">
+            <span className="spinner" aria-hidden="true" /> Loading&hellip;
+          </div>
         ) : items.length === 0 ? (
-          <p className="customer-profile-muted">No part requests yet.</p>
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u2709'}</div>
+            <div className="empty-state-title">No part requests yet</div>
+            <div className="empty-state-desc">Use the form above to request anything you need.</div>
+          </div>
         ) : (
-          <ul className="customer-feature-list">
-            {items.map((row) => (
-              <li key={row.id} className="customer-feature-list-item">
-                <div>
-                  <strong>{row.partName}</strong>
-                  <div className="customer-feature-status">
-                    Status: <em>{row.status}</em>
-                    <span className="customer-feature-meta"> · {formatDateTime(row.createdAt)}</span>
-                  </div>
-                  {row.description ? <p className="customer-profile-muted">{row.description}</p> : null}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="table-wrap">
+            <table className="table table-striped">
+              <thead>
+                <tr>
+                  <th>Part</th>
+                  <th>Description</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id}>
+                    <td><strong>{row.partName}</strong></td>
+                    <td className="muted">{row.description || '\u2014'}</td>
+                    <td>
+                      <span className={statusBadgeClass(row.status)}>{row.status || 'Unknown'}</span>
+                    </td>
+                    <td className="muted">{formatDateTime(row.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </section>

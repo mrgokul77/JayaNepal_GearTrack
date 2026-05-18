@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerProfile.css'
 
-/** Maps Axios / ASP.NET error payloads to a single user-facing string. */
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
   if (typeof data === 'string') return data
@@ -13,12 +10,9 @@ function getErrorMessage(error, fallback) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
+  if (!value) return '\u2014'
   try {
-    return new Date(value).toLocaleString(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    })
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   } catch {
     return String(value)
   }
@@ -28,9 +22,14 @@ function emptyForm() {
   return { appointmentLocal: '', serviceType: '', notes: '' }
 }
 
-/**
- * Customer appointments: book a service slot, list bookings, cancel pending ones.
- */
+function statusBadgeClass(status) {
+  const s = (status || '').toLowerCase()
+  if (s === 'pending') return 'badge badge-warning'
+  if (s === 'confirmed' || s === 'completed') return 'badge badge-success'
+  if (s === 'cancelled' || s === 'canceled') return 'badge badge-danger'
+  return 'badge badge-neutral'
+}
+
 function Appointments() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -109,81 +108,130 @@ function Appointments() {
   }
 
   return (
-    <section className="customer-profile-page">
-      <Link to="/customer" className="customer-profile-back">
-        ← Customer portal
-      </Link>
-      <h1>Appointments</h1>
-      <p className="customer-profile-lead">Book a workshop visit and manage your scheduled services.</p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Appointments</h1>
+          <p className="page-subtitle">Book a workshop visit and manage your scheduled services.</p>
+        </div>
+      </div>
 
-      {error ? <div className="customer-profile-error">{error}</div> : null}
-      {success ? <div className="customer-profile-success">{success}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
-      <div className="customer-profile-card">
-        <h2>Book an appointment</h2>
-        <form className="customer-profile-form" onSubmit={handleSubmit}>
-          <label>
-            Date &amp; time
-            <input
-              type="datetime-local"
-              name="appointmentLocal"
-              value={form.appointmentLocal}
-              onChange={handleChange}
-              required
-            />
-          </label>
-          <label>
-            Service type
-            <input
-              type="text"
-              name="serviceType"
-              value={form.serviceType}
-              onChange={handleChange}
-              placeholder="e.g. Oil change, brake inspection"
-              required
-            />
-          </label>
-          <label>
-            Notes (optional)
-            <textarea name="notes" value={form.notes} onChange={handleChange} rows={3} placeholder="Vehicle details or special requests" />
-          </label>
-          <button type="submit" className="customer-profile-primary" disabled={submitting}>
-            {submitting ? 'Booking…' : 'Book appointment'}
-          </button>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Book an appointment</div>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="appointmentLocal">Date &amp; time</label>
+              <input
+                id="appointmentLocal"
+                type="datetime-local"
+                name="appointmentLocal"
+                className="form-input"
+                value={form.appointmentLocal}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="serviceType">Service type</label>
+              <input
+                id="serviceType"
+                type="text"
+                name="serviceType"
+                className="form-input"
+                value={form.serviceType}
+                onChange={handleChange}
+                placeholder="e.g. Oil change, brake inspection"
+                required
+              />
+            </div>
+            <div className="form-group form-grid-full">
+              <label className="form-label" htmlFor="notes">Notes (optional)</label>
+              <textarea
+                id="notes"
+                name="notes"
+                className="form-textarea"
+                value={form.notes}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Vehicle details or special requests"
+              />
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Booking&hellip;
+                </>
+              ) : (
+                'Book appointment'
+              )}
+            </button>
+          </div>
         </form>
       </div>
 
-      <div className="customer-profile-card">
-        <h2>Your appointments</h2>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Your appointments</div>
+          <span className="muted">{items.length} total</span>
+        </div>
         {loading ? (
-          <p className="customer-profile-muted">Loading…</p>
+          <div className="loading-state">
+            <span className="spinner" aria-hidden="true" /> Loading&hellip;
+          </div>
         ) : items.length === 0 ? (
-          <p className="customer-profile-muted">No appointments yet.</p>
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u{1F4C5}'}</div>
+            <div className="empty-state-title">No appointments yet</div>
+            <div className="empty-state-desc">Book one above to schedule a workshop visit.</div>
+          </div>
         ) : (
-          <ul className="customer-feature-list">
-            {items.map((row) => (
-              <li key={row.id} className="customer-feature-list-item">
-                <div>
-                  <strong>{formatDateTime(row.appointmentDate)}</strong>
-                  <span className="customer-feature-meta"> · {row.serviceType}</span>
-                  <div className="customer-feature-status">
-                    Status: <em>{row.status}</em>
-                  </div>
-                  {row.notes ? <p className="customer-profile-muted">{row.notes}</p> : null}
-                </div>
-                {String(row.status).toLowerCase() === 'pending' ? (
-                  <button
-                    type="button"
-                    className="customer-profile-secondary"
-                    disabled={cancellingId === row.id}
-                    onClick={() => void handleCancel(row.id)}
-                  >
-                    {cancellingId === row.id ? 'Cancelling…' : 'Cancel'}
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <div className="table-wrap">
+            <table className="table table-striped">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Service type</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                  <th className="num">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id}>
+                    <td><strong>{formatDateTime(row.appointmentDate)}</strong></td>
+                    <td>{row.serviceType || '\u2014'}</td>
+                    <td>
+                      <span className={statusBadgeClass(row.status)}>{row.status || 'Unknown'}</span>
+                    </td>
+                    <td className="muted">{row.notes?.trim() ? row.notes : '\u2014'}</td>
+                    <td>
+                      <div className="actions">
+                        {String(row.status).toLowerCase() === 'pending' ? (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            disabled={cancellingId === row.id}
+                            onClick={() => void handleCancel(row.id)}
+                          >
+                            {cancellingId === row.id ? 'Cancelling\u2026' : 'Cancel'}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </section>

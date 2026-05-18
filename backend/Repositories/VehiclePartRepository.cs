@@ -40,6 +40,16 @@ public class VehiclePartRepository : IVehiclePartRepository
         return part;
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        var part = await _dbContext.VehicleParts.FirstOrDefaultAsync(v => v.Id == id);
+        if (part != null)
+        {
+            _dbContext.VehicleParts.Remove(part);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
     public async Task SaveChangesAsync()
     {
         await _dbContext.SaveChangesAsync();

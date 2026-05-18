@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerProfile.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -13,6 +11,16 @@ function getErrorMessage(error, fallback) {
 
 function emptyVehicleForm() {
   return { vehicleNumber: '', brand: '', model: '', year: new Date().getFullYear() }
+}
+
+function initials(name) {
+  if (!name) return '?'
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('') || '?'
 }
 
 function ProfilePage() {
@@ -35,30 +43,23 @@ function ProfilePage() {
     try {
       const response = await api.get('/customer-profile')
       const data = response.data
-      // Debug: confirm payload shape (camelCase) and status in browser console
-      console.log('[customer-profile] GET /api/customer-profile', response.status, data)
-
       if (!data || typeof data !== 'object') {
         setProfile(null)
         setError('Invalid profile response from server.')
         return
       }
-
       setProfile(data)
       setProfileForm({
         fullName: data.fullName ?? '',
         phone: data.phone ?? '',
         address: data.address ?? '',
       })
-      if (data.email) {
-        localStorage.setItem('email', data.email)
-      }
+      if (data.email) localStorage.setItem('email', data.email)
     } catch (e) {
-      console.error('[customer-profile] GET failed', e.response?.status, e.response?.data ?? e.message)
       setProfile(null)
       if (e.response?.status === 404) {
         setProfileNotFound(true)
-        setError('Customer profile not found')
+        setError('Customer profile not found.')
       } else {
         setProfileNotFound(false)
         setError(getErrorMessage(e, 'Could not load your profile.'))
@@ -90,14 +91,9 @@ function ProfilePage() {
         phone: profileForm.phone,
         address: profileForm.address,
       })
-      console.log('[customer-profile] PUT /api/customer-profile', data)
       setProfile(data)
-      if (data.fullName) {
-        localStorage.setItem('fullName', data.fullName)
-      }
-      if (data.email) {
-        localStorage.setItem('email', data.email)
-      }
+      if (data.fullName) localStorage.setItem('fullName', data.fullName)
+      if (data.email) localStorage.setItem('email', data.email)
       setSuccess('Profile updated.')
     } catch (e) {
       setError(getErrorMessage(e, 'Could not update profile.'))
@@ -187,202 +183,286 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <section className="customer-profile-page">
-        <p className="customer-profile-muted">Loading your profile…</p>
+      <section>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your profile&hellip;
+        </div>
       </section>
     )
   }
 
   if (profileNotFound) {
     return (
-      <section className="customer-profile-page">
-        <Link to="/customer" className="customer-profile-back">
-          ← Customer portal
-        </Link>
-        <h1>My profile</h1>
-        <div className="customer-profile-error" role="alert">
-          Customer profile not found
+      <section>
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">My profile</h1>
+          </div>
         </div>
-        <p className="customer-profile-muted">
-          No customer record is linked to your login. If you registered as a customer, contact support.
-        </p>
+        <div className="alert alert-error">Customer profile not found</div>
+        <div className="card">
+          <p className="muted">
+            No customer record is linked to your login. If you registered as a customer, contact support.
+          </p>
+        </div>
       </section>
     )
   }
 
   if (!profile && error) {
     return (
-      <section className="customer-profile-page">
-        <Link to="/customer" className="customer-profile-back">
-          ← Customer portal
-        </Link>
-        <div className="customer-profile-error">{error}</div>
+      <section>
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">My profile</h1>
+          </div>
+        </div>
+        <div className="alert alert-error">{error}</div>
       </section>
     )
   }
 
   return (
-    <section className="customer-profile-page">
-      <Link to="/customer" className="customer-profile-back">
-        ← Customer portal
-      </Link>
-      <h1>My profile</h1>
-      <p className="customer-profile-lead">Update your contact details and manage the vehicles on your account.</p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">My profile</h1>
+          <p className="page-subtitle">Update your contact details and manage the vehicles on your account.</p>
+        </div>
+      </div>
 
-      {error ? <div className="customer-profile-error">{error}</div> : null}
-      {success ? <div className="customer-profile-success">{success}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
-      <article className="customer-profile-card">
-        <h2>Account details</h2>
-        <p className="customer-profile-muted">
-          <strong>Email</strong> {displayEmail || '—'} (sign-in email; contact support to change)
-        </p>
-        <p className="customer-profile-muted">
-          <strong>Customer ID</strong> {profile?.id ?? '—'} · <strong>Member since</strong>{' '}
-          {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '—'}
-        </p>
+      <div className="card">
+        <div className="flex gap-3" style={{ alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+          <div className="avatar avatar-lg" aria-hidden="true">{initials(profile?.fullName)}</div>
+          <div>
+            <div style={{ fontSize: '1.125rem', fontWeight: 700 }}>{profile?.fullName || 'Customer'}</div>
+            <div className="muted">{displayEmail || '\u2014'}</div>
+            <div className="muted" style={{ fontSize: '0.8125rem' }}>
+              Customer #{profile?.id ?? '\u2014'}
+              {' \u00B7 '}
+              Member since{' '}
+              {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '\u2014'}
+            </div>
+          </div>
+        </div>
+        <hr className="divider" />
 
-        <form className="customer-profile-form" onSubmit={handleSaveProfile}>
-          <label htmlFor="fullName">Full name</label>
-          <input
-            id="fullName"
-            name="fullName"
-            type="text"
-            autoComplete="name"
-            value={profileForm.fullName}
-            onChange={handleProfileChange}
-            required
-          />
-
-          <label htmlFor="phone">Phone</label>
-          <input id="phone" name="phone" type="tel" autoComplete="tel" value={profileForm.phone} onChange={handleProfileChange} />
-
-          <label htmlFor="address">Address</label>
-          <textarea id="address" name="address" rows={3} value={profileForm.address} onChange={handleProfileChange} />
-
-          <button type="submit" className="customer-profile-primary" disabled={savingProfile}>
-            {savingProfile ? 'Saving…' : 'Save profile'}
-          </button>
+        <div className="card-header">
+          <div className="card-title">Edit details</div>
+        </div>
+        <form onSubmit={handleSaveProfile}>
+          <div className="form-grid">
+            <div className="form-group form-grid-full">
+              <label className="form-label" htmlFor="fullName">Full name</label>
+              <input
+                id="fullName"
+                name="fullName"
+                className="form-input"
+                value={profileForm.fullName}
+                onChange={handleProfileChange}
+                autoComplete="name"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="phone">Phone</label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                className="form-input"
+                value={profileForm.phone}
+                onChange={handleProfileChange}
+                autoComplete="tel"
+              />
+            </div>
+            <div className="form-group form-grid-full">
+              <label className="form-label" htmlFor="address">Address</label>
+              <textarea
+                id="address"
+                name="address"
+                className="form-textarea"
+                rows={3}
+                value={profileForm.address}
+                onChange={handleProfileChange}
+              />
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={savingProfile}>
+              {savingProfile ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Saving&hellip;
+                </>
+              ) : (
+                'Save profile'
+              )}
+            </button>
+          </div>
         </form>
-      </article>
+      </div>
 
-      <article className="customer-profile-card">
-        <h2>Your vehicles</h2>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Your vehicles</div>
+        </div>
         {profile?.vehicles?.length ? (
-          <div className="customer-profile-table-wrap">
-            <table className="customer-profile-table">
-              <thead>
-                <tr>
-                  <th>Number</th>
-                  <th>Brand</th>
-                  <th>Model</th>
-                  <th>Year</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {profile.vehicles.map((v) =>
-                  editingId === v.id ? (
-                    <tr key={v.id}>
-                      <td colSpan={5}>
-                        <form className="customer-profile-inline-form" onSubmit={handleSaveVehicle}>
-                          <div className="customer-profile-inline-grid">
-                            <label>
-                              Number
-                              <input
-                                name="vehicleNumber"
-                                value={editVehicle.vehicleNumber}
-                                onChange={handleEditVehicleChange}
-                                required
-                              />
-                            </label>
-                            <label>
-                              Brand
-                              <input name="brand" value={editVehicle.brand} onChange={handleEditVehicleChange} required />
-                            </label>
-                            <label>
-                              Model
-                              <input name="model" value={editVehicle.model} onChange={handleEditVehicleChange} required />
-                            </label>
-                            <label>
-                              Year
-                              <input
-                                name="year"
-                                type="number"
-                                min={1900}
-                                max={2100}
-                                value={editVehicle.year}
-                                onChange={handleEditVehicleChange}
-                                required
-                              />
-                            </label>
-                          </div>
-                          <div className="customer-profile-inline-actions">
-                            <button type="submit" className="customer-profile-primary" disabled={savingVehicle}>
-                              {savingVehicle ? 'Saving…' : 'Save'}
-                            </button>
-                            <button type="button" className="customer-profile-secondary" onClick={cancelEditVehicle}>
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={v.id}>
-                      <td>{v.vehicleNumber}</td>
-                      <td>{v.brand}</td>
-                      <td>{v.model}</td>
-                      <td>{v.year}</td>
-                      <td className="customer-profile-actions-cell">
-                        <button type="button" className="customer-profile-linkish" onClick={() => startEditVehicle(v)}>
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
+          <div className="item-card-grid">
+            {profile.vehicles.map((v) =>
+              editingId === v.id ? (
+                <form key={v.id} className="item-card" onSubmit={handleSaveVehicle} style={{ borderColor: 'var(--color-primary-100)' }}>
+                  <div className="form-group">
+                    <label className="form-label">Number</label>
+                    <input
+                      name="vehicleNumber"
+                      className="form-input"
+                      value={editVehicle.vehicleNumber}
+                      onChange={handleEditVehicleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Brand</label>
+                    <input
+                      name="brand"
+                      className="form-input"
+                      value={editVehicle.brand}
+                      onChange={handleEditVehicleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Model</label>
+                    <input
+                      name="model"
+                      className="form-input"
+                      value={editVehicle.model}
+                      onChange={handleEditVehicleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Year</label>
+                    <input
+                      name="year"
+                      type="number"
+                      min={1900}
+                      max={2100}
+                      className="form-input"
+                      value={editVehicle.year}
+                      onChange={handleEditVehicleChange}
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={savingVehicle}>
+                      {savingVehicle ? 'Saving\u2026' : 'Save'}
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEditVehicle}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="item-card" key={v.id}>
+                  <div className="flex-between">
+                    <div className="item-card-title">{v.vehicleNumber}</div>
+                    <span className="badge badge-info">{v.year}</span>
+                  </div>
+                  <div className="item-card-meta">
+                    {v.brand} {v.model}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => startEditVehicle(v)}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    Edit
+                  </button>
+                </div>
+              ),
+            )}
           </div>
         ) : (
-          <p className="customer-profile-muted">No vehicles yet. Add one below.</p>
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u{1F697}'}</div>
+            <div className="empty-state-title">No vehicles yet</div>
+            <div className="empty-state-desc">Add one below to keep track of service and parts.</div>
+          </div>
         )}
 
-        <h3 className="customer-profile-subheading">Add a vehicle</h3>
-        <form className="customer-profile-form" onSubmit={handleAddVehicle}>
-          <label htmlFor="new-vehicleNumber">Vehicle number</label>
-          <input
-            id="new-vehicleNumber"
-            name="vehicleNumber"
-            value={newVehicle.vehicleNumber}
-            onChange={handleNewVehicleChange}
-            required
-          />
+        <hr className="divider" />
 
-          <label htmlFor="new-brand">Brand</label>
-          <input id="new-brand" name="brand" value={newVehicle.brand} onChange={handleNewVehicleChange} required />
-
-          <label htmlFor="new-model">Model</label>
-          <input id="new-model" name="model" value={newVehicle.model} onChange={handleNewVehicleChange} required />
-
-          <label htmlFor="new-year">Year</label>
-          <input
-            id="new-year"
-            name="year"
-            type="number"
-            min={1900}
-            max={2100}
-            value={newVehicle.year}
-            onChange={handleNewVehicleChange}
-            required
-          />
-
-          <button type="submit" className="customer-profile-primary" disabled={savingVehicle}>
-            {savingVehicle ? 'Adding…' : 'Add vehicle'}
-          </button>
+        <div className="card-header">
+          <div className="card-title">Add a vehicle</div>
+        </div>
+        <form onSubmit={handleAddVehicle}>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="new-vehicleNumber">Vehicle number</label>
+              <input
+                id="new-vehicleNumber"
+                name="vehicleNumber"
+                className="form-input"
+                value={newVehicle.vehicleNumber}
+                onChange={handleNewVehicleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="new-year">Year</label>
+              <input
+                id="new-year"
+                name="year"
+                type="number"
+                min={1900}
+                max={2100}
+                className="form-input"
+                value={newVehicle.year}
+                onChange={handleNewVehicleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="new-brand">Brand</label>
+              <input
+                id="new-brand"
+                name="brand"
+                className="form-input"
+                value={newVehicle.brand}
+                onChange={handleNewVehicleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="new-model">Model</label>
+              <input
+                id="new-model"
+                name="model"
+                className="form-input"
+                value={newVehicle.model}
+                onChange={handleNewVehicleChange}
+                required
+              />
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={savingVehicle}>
+              {savingVehicle ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Adding&hellip;
+                </>
+              ) : (
+                'Add vehicle'
+              )}
+            </button>
+          </div>
         </form>
-      </article>
+      </div>
     </section>
   )
 }

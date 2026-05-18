@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './Notifications.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -12,12 +10,9 @@ function getErrorMessage(error, fallback) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
+  if (!value) return '\u2014'
   try {
-    return new Date(value).toLocaleString(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    })
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   } catch {
     return String(value)
   }
@@ -25,21 +20,22 @@ function formatDateTime(value) {
 
 function typeBadgeClass(type) {
   const t = (type || '').toLowerCase()
-  if (t === 'lowstock') return 'low-stock'
-  if (t === 'creditreminder') return 'credit-reminder'
-  return 'other'
+  if (t === 'lowstock') return 'badge badge-lowstock'
+  if (t === 'creditreminder') return 'badge badge-info'
+  return 'badge badge-neutral'
+}
+
+function isLowStock(type) {
+  return (type || '').toLowerCase() === 'lowstock'
 }
 
 function typeLabel(type) {
   if (!type) return 'Notice'
-  if (type === 'LowStock') return 'Low stock'
+  if (type === 'LowStock') return 'LOW STOCK'
   if (type === 'CreditReminder') return 'Credit reminder'
   return type
 }
 
-/**
- * Admin notifications: list, mark read, and manual low-stock / credit-reminder sweeps.
- */
 function Notifications() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -114,59 +110,106 @@ function Notifications() {
     }
   }
 
+  const unreadCount = items.filter((n) => !n.isRead).length
+
   return (
-    <section className="admin-notifications">
-      <div className="admin-notifications-header">
+    <section>
+      <div className="page-header">
         <div>
-          <Link to="/admin" className="admin-notifications-back">
-            ← Admin dashboard
-          </Link>
-          <h1>Notifications</h1>
-          <p className="admin-notifications-lead">System alerts for inventory and customer credit follow-ups.</p>
+          <h1 className="page-title">Notifications</h1>
+          <p className="page-subtitle">
+            System alerts for inventory and customer credit follow-ups.
+            {unreadCount > 0 ? (
+              <>
+                {' '}<span className="badge badge-info">{unreadCount} unread</span>
+              </>
+            ) : null}
+          </p>
+        </div>
+        <div className="page-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={loading}
+            onClick={() => void load()}
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            className="btn btn-success"
+            disabled={runningLowStock}
+            onClick={() => void handleLowStockCheck()}
+          >
+            {runningLowStock ? (
+              <>
+                <span className="spinner" aria-hidden="true" /> Checking&hellip;
+              </>
+            ) : (
+              <>{'\u{1F4E6}'} Run low-stock check</>
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={runningCredit}
+            onClick={() => void handleCreditReminders()}
+          >
+            {runningCredit ? (
+              <>
+                <span className="spinner" aria-hidden="true" /> Sending&hellip;
+              </>
+            ) : (
+              <>{'\u{1F4E7}'} Send credit reminders</>
+            )}
+          </button>
         </div>
       </div>
 
-      {error ? <div className="admin-notifications-banner admin-notifications-banner-error">{error}</div> : null}
-      {success ? <div className="admin-notifications-banner admin-notifications-banner-success">{success}</div> : null}
-
-      <div className="admin-notifications-actions">
-        <button type="button" className="primary" disabled={runningLowStock} onClick={() => void handleLowStockCheck()}>
-          {runningLowStock ? 'Checking…' : 'Run low stock check'}
-        </button>
-        <button type="button" className="primary" disabled={runningCredit} onClick={() => void handleCreditReminders()}>
-          {runningCredit ? 'Sending…' : 'Send credit reminders'}
-        </button>
-        <button type="button" disabled={loading} onClick={() => void load()}>
-          Refresh list
-        </button>
-      </div>
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
       {loading ? (
-        <p className="admin-notifications-lead">Loading…</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading notifications&hellip;
+        </div>
       ) : items.length === 0 ? (
-        <div className="admin-notifications-empty">No notifications yet. Run a low stock check to generate alerts.</div>
+        <div className="card">
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u{1F514}'}</div>
+            <div className="empty-state-title">No notifications yet</div>
+            <div className="empty-state-desc">Run a low-stock check or credit reminders to generate alerts.</div>
+          </div>
+        </div>
       ) : (
-        <ul className="admin-notifications-list">
+        <ul className="notification-list">
           {items.map((n) => (
-            <li key={n.id} className={`admin-notifications-item${n.isRead ? '' : ' unread'}`}>
-              <div className="admin-notifications-item-header">
-                <h2 className="admin-notifications-item-title">{n.title}</h2>
-                <span className={`admin-notifications-badge ${typeBadgeClass(n.type)}`}>{typeLabel(n.type)}</span>
+            <li
+              key={n.id}
+              className={`notification-item${n.isRead ? '' : ' unread'}`}
+            >
+              <div className="notification-header">
+                <div className="notification-title-row">
+                  <span className={typeBadgeClass(n.type)}>{typeLabel(n.type)}</span>
+                  <h2 className="notification-title">{n.title}</h2>
+                </div>
+                <span className="notification-meta">{formatDateTime(n.createdAt)}</span>
               </div>
-              <p className="admin-notifications-meta">{formatDateTime(n.createdAt)}</p>
-              <p className="admin-notifications-message">{n.message}</p>
-              {!n.isRead ? (
-                <button
-                  type="button"
-                  className="admin-notifications-mark-read"
-                  disabled={markingId === n.id}
-                  onClick={() => void handleMarkRead(n.id)}
-                >
-                  {markingId === n.id ? 'Saving…' : 'Mark as read'}
-                </button>
-              ) : (
-                <span className="admin-notifications-meta">Read</span>
-              )}
+              <p className="notification-message">{n.message}</p>
+              <div className="notification-footer">
+                {!n.isRead ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm notification-action-btn"
+                    disabled={markingId === n.id}
+                    onClick={() => void handleMarkRead(n.id)}
+                  >
+                    {markingId === n.id ? 'Saving\u2026' : 'Mark as read'}
+                  </button>
+                ) : (
+                  <span className="badge badge-neutral">Read</span>
+                )}
+              </div>
             </li>
           ))}
         </ul>

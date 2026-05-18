@@ -9,5 +9,6 @@ public interface IVehiclePartRepository
     Task<VehiclePart?> GetTrackedByIdAsync(int id);
     Task<bool> VendorExistsAsync(int vendorId);
     Task<VehiclePart> AddAsync(VehiclePart part);
+    Task DeleteAsync(int id);
     Task SaveChangesAsync();
 }

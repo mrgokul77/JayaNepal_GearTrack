@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './LoyaltyStats.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -11,15 +9,19 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
-const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+const money = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+})
 
 function formatMoney(n) {
-  if (n === null || n === undefined || Number.isNaN(Number(n))) return '—'
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return '\u2014'
   return money.format(Number(n))
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
+  if (!value) return '\u2014'
   try {
     return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   } catch {
@@ -27,9 +29,6 @@ function formatDateTime(value) {
   }
 }
 
-/**
- * Admin view: loyalty program KPIs, top customers by discount, and all discounted invoices.
- */
 function LoyaltyStats() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -54,64 +53,77 @@ function LoyaltyStats() {
   }, [load])
 
   return (
-    <section className="loyalty-stats-page">
-      <Link to="/admin" className="loyalty-stats-back">
-        ← Admin dashboard
-      </Link>
-      <h1>Loyalty program</h1>
-      <p className="loyalty-stats-lead">
-        GearTrack loyalty awards <strong>10% off</strong> the pre-discount subtotal when a single purchase{' '}
-        <strong>exceeds $5,000</strong> (before the loyalty discount is applied). Below is program usage across all
-        customers.
-      </p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Loyalty program</h1>
+          <p className="page-subtitle">
+            GearTrack awards <strong>10% off</strong> when a single purchase exceeds <strong>$5,000</strong> (before the
+            loyalty discount is applied).
+          </p>
+        </div>
+      </div>
 
-      {error ? <div className="loyalty-stats-banner loyalty-stats-banner-error">{error}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
 
       {loading ? (
-        <p className="loyalty-stats-muted">Loading…</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading loyalty statistics&hellip;
+        </div>
       ) : stats ? (
         <>
-          <div className="loyalty-stats-kpis">
-            <div className="loyalty-stats-kpi">
-              <p className="loyalty-stats-kpi-label">Customers with a loyalty discount</p>
-              <p className="loyalty-stats-kpi-value">{stats.totalCustomers ?? 0}</p>
+          <div className="stat-grid">
+            <div className="stat-card">
+              <div className="stat-icon stat-icon-primary" aria-hidden="true">{'\u{1F465}'}</div>
+              <div className="stat-body">
+                <div className="stat-label">Customers with a discount</div>
+                <div className="stat-value">{stats.totalCustomers ?? 0}</div>
+              </div>
             </div>
-            <div className="loyalty-stats-kpi">
-              <p className="loyalty-stats-kpi-label">Total discount given</p>
-              <p className="loyalty-stats-kpi-value">{formatMoney(stats.totalDiscountGiven)}</p>
+            <div className="stat-card">
+              <div className="stat-icon stat-icon-success" aria-hidden="true">{'\u{1F4B0}'}</div>
+              <div className="stat-body">
+                <div className="stat-label">Total discount given</div>
+                <div className="stat-value">{formatMoney(stats.totalDiscountGiven)}</div>
+              </div>
             </div>
-            <div className="loyalty-stats-kpi">
-              <p className="loyalty-stats-kpi-label">Discounted invoices</p>
-              <p className="loyalty-stats-kpi-value">{stats.discountedInvoices?.length ?? 0}</p>
+            <div className="stat-card">
+              <div className="stat-icon stat-icon-warning" aria-hidden="true">{'\u{1F3F7}'}</div>
+              <div className="stat-body">
+                <div className="stat-label">Discounted invoices</div>
+                <div className="stat-value">{stats.discountedInvoices?.length ?? 0}</div>
+              </div>
             </div>
           </div>
 
-          <div className="loyalty-stats-card">
-            <h2>Top customers by discount received</h2>
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">Top customers by discount received</div>
+            </div>
             {!stats.topCustomers?.length ? (
-              <p className="loyalty-stats-muted">No loyalty discounts recorded yet.</p>
+              <div className="empty-state">
+                <div className="empty-state-icon" aria-hidden="true">{'\u{1F3C5}'}</div>
+                <div className="empty-state-title">No loyalty discounts recorded yet</div>
+                <div className="empty-state-desc">Discounts are applied automatically when a sale exceeds $5,000.</div>
+              </div>
             ) : (
-              <div className="loyalty-stats-table-wrap">
-                <table className="loyalty-stats-table">
+              <div className="table-wrap">
+                <table className="table table-striped">
                   <thead>
                     <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">Customer</th>
-                      <th scope="col" className="loyalty-stats-num">
-                        Discounted orders
-                      </th>
-                      <th scope="col" className="loyalty-stats-num">
-                        Total discount
-                      </th>
+                      <th>#</th>
+                      <th>Customer</th>
+                      <th className="num">Discounted orders</th>
+                      <th className="num">Total discount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.topCustomers.map((row, idx) => (
                       <tr key={row.customerId}>
                         <td>{idx + 1}</td>
-                        <td>{row.customerName || '—'}</td>
-                        <td className="loyalty-stats-num">{row.discountedInvoiceCount}</td>
-                        <td className="loyalty-stats-num">{formatMoney(row.totalDiscountReceived)}</td>
+                        <td><strong>{row.customerName || '\u2014'}</strong></td>
+                        <td className="num">{row.discountedInvoiceCount}</td>
+                        <td className="num">{formatMoney(row.totalDiscountReceived)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -120,38 +132,34 @@ function LoyaltyStats() {
             )}
           </div>
 
-          <div className="loyalty-stats-card">
-            <h2>All discounted invoices</h2>
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">All discounted invoices</div>
+            </div>
             {!stats.discountedInvoices?.length ? (
-              <p className="loyalty-stats-muted">No invoices with loyalty discount yet.</p>
+              <p className="muted">No invoices with loyalty discount yet.</p>
             ) : (
-              <div className="loyalty-stats-table-wrap">
-                <table className="loyalty-stats-table">
+              <div className="table-wrap">
+                <table className="table table-striped">
                   <thead>
                     <tr>
-                      <th scope="col">Invoice</th>
-                      <th scope="col">Customer</th>
-                      <th scope="col">Date</th>
-                      <th scope="col" className="loyalty-stats-num">
-                        Subtotal
-                      </th>
-                      <th scope="col" className="loyalty-stats-num">
-                        Loyalty discount
-                      </th>
-                      <th scope="col" className="loyalty-stats-num">
-                        Net
-                      </th>
+                      <th>Invoice</th>
+                      <th>Customer</th>
+                      <th>Date</th>
+                      <th className="num">Subtotal</th>
+                      <th className="num">Loyalty discount</th>
+                      <th className="num">Net</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.discountedInvoices.map((inv) => (
                       <tr key={inv.invoiceId}>
-                        <td>#{inv.invoiceId}</td>
-                        <td>{inv.customerName || '—'}</td>
-                        <td>{formatDateTime(inv.saleDate)}</td>
-                        <td className="loyalty-stats-num">{formatMoney(inv.grossBeforeDiscount)}</td>
-                        <td className="loyalty-stats-num">{formatMoney(inv.discountApplied)}</td>
-                        <td className="loyalty-stats-num">{formatMoney(inv.netPaid)}</td>
+                        <td><strong>#{inv.invoiceId}</strong></td>
+                        <td>{inv.customerName || '\u2014'}</td>
+                        <td className="muted">{formatDateTime(inv.saleDate)}</td>
+                        <td className="num">{formatMoney(inv.grossBeforeDiscount)}</td>
+                        <td className="num text-success">{formatMoney(inv.discountApplied)}</td>
+                        <td className="num"><strong>{formatMoney(inv.netPaid)}</strong></td>
                       </tr>
                     ))}
                   </tbody>
@@ -161,7 +169,7 @@ function LoyaltyStats() {
           </div>
         </>
       ) : (
-        <p className="loyalty-stats-muted">No data.</p>
+        <p className="muted">No data.</p>
       )}
     </section>
   )

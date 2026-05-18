@@ -72,6 +72,11 @@ public class VehiclePartService : IVehiclePartService
         return MapToDto(entity);
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        await _repository.DeleteAsync(id);
+    }
+
     private static void ValidatePartWrite(CreateVehiclePartDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))

@@ -8,4 +8,5 @@ public interface IVehiclePartService
     Task<VehiclePartDto?> GetByIdAsync(int id);
     Task<VehiclePartDto> CreateAsync(CreateVehiclePartDto dto);
     Task<VehiclePartDto> UpdateAsync(int id, UpdateVehiclePartDto dto);
+    Task DeleteAsync(int id);
 }

@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerProfile.css'
-import './LoyaltyBenefits.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -12,15 +9,20 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
-const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+const money = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+})
 
 function formatMoney(n) {
-  if (n === null || n === undefined || Number.isNaN(Number(n))) return '—'
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return '\u2014'
   return money.format(Number(n))
 }
 
 /**
- * Customer loyalty: spending progress vs $5,000 single-purchase tier and lifetime discount savings.
+ * Customer-facing loyalty card: shows discount status, progress to threshold,
+ * and lifetime savings summary.
  */
 function LoyaltyBenefits() {
   const [data, setData] = useState(null)
@@ -50,82 +52,103 @@ function LoyaltyBenefits() {
   const qualifies = Boolean(data?.qualifiesForNextDiscount)
   const amountNeeded = Number(data?.amountNeededForDiscount ?? 0)
 
-  // Progress toward the single-purchase tier using your most recent order subtotal (pre-discount).
-  const progressPct =
-    threshold > 0 ? Math.min(100, Math.round((lastGross / threshold) * 1000) / 10) : 0
+  const progressPct = threshold > 0 ? Math.min(100, Math.round((lastGross / threshold) * 1000) / 10) : 0
 
   return (
-    <section className="customer-profile-page loyalty-benefits-page">
-      <Link to="/customer" className="customer-profile-back loyalty-benefits-back">
-        ← Customer portal
-      </Link>
-      <h1>My loyalty</h1>
-      <p className="customer-profile-lead loyalty-benefits-lead">
-        GearTrack <strong>Loyalty</strong>: spend <strong>more than {formatMoney(threshold)}</strong> on parts in a{' '}
-        <strong>single purchase</strong> (before the 10% discount is applied) and we take <strong>10% off</strong> that
-        order. Discounts are automatic at checkout when staff completes your sale.
-      </p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">My loyalty</h1>
+          <p className="page-subtitle">
+            Spend over <strong>{formatMoney(threshold)}</strong> on parts in a single purchase and get{' '}
+            <strong>10% off</strong> that order automatically.
+          </p>
+        </div>
+      </div>
 
-      {error ? <div className="loyalty-benefits-banner loyalty-benefits-banner-error">{error}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
 
       {loading ? (
-        <p className="loyalty-benefits-muted">Loading…</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading loyalty&hellip;
+        </div>
       ) : data ? (
         <>
+          <div className="loyalty-card">
+            <div className="loyalty-card-label">GearTrack Loyalty</div>
+            <div className="loyalty-card-value">{formatMoney(data.totalDiscountReceived)}</div>
+            <div className="loyalty-card-subtitle">
+              Lifetime savings from the 10% loyalty discount on qualifying orders.
+            </div>
+          </div>
+
           {qualifies ? (
-            <div className="loyalty-benefits-banner loyalty-benefits-banner-success">
-              Your most recent purchase subtotal was over {formatMoney(threshold)}, so that order qualified for the{' '}
-              <strong>10% loyalty discount</strong>. Each new purchase must exceed {formatMoney(threshold)} on its own
-              to earn the discount again.
+            <div className="alert alert-success">
+              Your most recent purchase qualified for the <strong>10% loyalty discount</strong>. Each new purchase must
+              exceed {formatMoney(threshold)} to earn the discount again.
             </div>
           ) : (
-            <div className="loyalty-benefits-banner loyalty-benefits-banner-info">
+            <div className="alert alert-info">
               {data.totalPurchases === 0
                 ? `When your first single purchase subtotal goes above ${formatMoney(threshold)}, that order will receive 10% off the pre-discount total.`
                 : `Based on your last order subtotal (${formatMoney(lastGross)}), add about ${formatMoney(amountNeeded)} more in one checkout (pre-discount) to cross the loyalty line.`}
             </div>
           )}
 
-          <div className="customer-profile-card loyalty-benefits-card">
-            <h2>{`Progress (last purchase vs ${formatMoney(threshold)} tier)`}</h2>
-            <div className="loyalty-benefits-progress-label">
-              <span>Last order subtotal (pre-discount)</span>
-              <span>{formatMoney(lastGross)}</span>
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">Progress to next discount</div>
+              <span className="muted">{progressPct}% of {formatMoney(threshold)}</span>
+            </div>
+            <div className="flex-between mb-4">
+              <span className="muted">Last order subtotal</span>
+              <span><strong>{formatMoney(lastGross)}</strong></span>
             </div>
             <div
-              className="loyalty-benefits-progress-track"
+              className="progress-track"
               role="progressbar"
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={progressPct}
             >
-              <div className="loyalty-benefits-progress-fill" style={{ width: `${progressPct}%` }} />
+              <div
+                className={qualifies ? 'progress-fill progress-fill-success' : 'progress-fill'}
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
-            <p className="loyalty-benefits-progress-foot">
-              Bar compares your <strong>most recent invoice</strong> subtotal to the {formatMoney(threshold)} loyalty
-              threshold (you must be <strong>strictly above</strong> {formatMoney(threshold)} to qualify).
+            <p className="muted mt-3" style={{ fontSize: '0.8125rem' }}>
+              Bar compares your most recent invoice subtotal to the {formatMoney(threshold)} loyalty threshold. You must
+              be strictly above the threshold to qualify.
             </p>
           </div>
 
-          <div className="customer-profile-card loyalty-benefits-card">
-            <h2>Lifetime summary</h2>
-            <div className="loyalty-benefits-metrics">
-              <div>
-                <p className="loyalty-benefits-metric-label">Purchases</p>
-                <p className="loyalty-benefits-metric-value">{data.totalPurchases ?? 0}</p>
+          <div className="stat-grid">
+            <div className="stat-card">
+              <div className="stat-icon stat-icon-primary" aria-hidden="true">{'\u{1F6CD}'}</div>
+              <div className="stat-body">
+                <div className="stat-label">Purchases</div>
+                <div className="stat-value">{data.totalPurchases ?? 0}</div>
               </div>
-              <div>
-                <p className="loyalty-benefits-metric-label">Total spent (pre-discount subtotals)</p>
-                <p className="loyalty-benefits-metric-value">{formatMoney(data.totalSpent)}</p>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon stat-icon-success" aria-hidden="true">{'\u{1F4B0}'}</div>
+              <div className="stat-body">
+                <div className="stat-label">Total spent (pre-discount)</div>
+                <div className="stat-value">{formatMoney(data.totalSpent)}</div>
               </div>
-              <div>
-                <p className="loyalty-benefits-metric-label">Total loyalty savings</p>
-                <p className="loyalty-benefits-metric-value">{formatMoney(data.totalDiscountReceived)}</p>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon stat-icon-warning" aria-hidden="true">{'\u{1F3C5}'}</div>
+              <div className="stat-body">
+                <div className="stat-label">Loyalty savings</div>
+                <div className="stat-value">{formatMoney(data.totalDiscountReceived)}</div>
               </div>
             </div>
           </div>
         </>
-      ) : null}
+      ) : (
+        <p className="muted">No data.</p>
+      )}
     </section>
   )
 }

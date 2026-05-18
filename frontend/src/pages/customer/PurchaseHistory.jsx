@@ -1,10 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerProfile.css'
-import './PurchaseHistory.css'
 
-/** Maps Axios / ASP.NET error payloads to a single user-facing string. */
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
   if (typeof data === 'string') return data
@@ -14,27 +10,33 @@ function getErrorMessage(error, fallback) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
+  if (!value) return '\u2014'
   try {
-    return new Date(value).toLocaleString(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    })
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   } catch {
     return String(value)
   }
 }
 
-const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+const money = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+})
 
 function formatMoney(n) {
-  if (n === null || n === undefined || Number.isNaN(Number(n))) return '—'
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return '\u2014'
   return money.format(Number(n))
 }
 
-/**
- * Customer purchase and service history: sales invoices with expandable line items, and appointments list.
- */
+function statusBadgeClass(status) {
+  const s = (status || '').toLowerCase()
+  if (s === 'pending') return 'badge badge-warning'
+  if (s === 'completed' || s === 'confirmed') return 'badge badge-success'
+  if (s === 'cancelled' || s === 'canceled') return 'badge badge-danger'
+  return 'badge badge-neutral'
+}
+
 function PurchaseHistory() {
   const [tab, setTab] = useState('purchases')
   const [purchases, setPurchases] = useState([])
@@ -85,30 +87,31 @@ function PurchaseHistory() {
   }
 
   return (
-    <section className="customer-profile-page">
-      <Link to="/customer" className="customer-profile-back">
-        ← Customer portal
-      </Link>
-      <h1>My history</h1>
-      <p className="customer-profile-lead">View your past part purchases and scheduled service appointments.</p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">My history</h1>
+          <p className="page-subtitle">Your past part purchases and scheduled service appointments.</p>
+        </div>
+      </div>
 
-      {error ? <div className="customer-profile-error">{error}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
 
-      <div className="purchase-history-tabs" role="tablist" aria-label="History type">
+      <div className="tabs" role="tablist" aria-label="History type">
         <button
           type="button"
           role="tab"
           aria-selected={tab === 'purchases'}
-          className={`purchase-history-tab${tab === 'purchases' ? ' active' : ''}`}
+          className={`tab${tab === 'purchases' ? ' active' : ''}`}
           onClick={() => setTab('purchases')}
         >
-          Purchase history
+          Purchases
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={tab === 'services'}
-          className={`purchase-history-tab${tab === 'services' ? ' active' : ''}`}
+          className={`tab${tab === 'services' ? ' active' : ''}`}
           onClick={() => setTab('services')}
         >
           Service history
@@ -116,35 +119,38 @@ function PurchaseHistory() {
       </div>
 
       {tab === 'purchases' ? (
-        <div className="customer-profile-card">
-          <h2>Purchases</h2>
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title">Sales invoices</div>
+            <span className="muted">{purchases.length} record(s)</span>
+          </div>
           {loadingPurchases ? (
-            <p className="customer-profile-muted">Loading…</p>
+            <div className="loading-state">
+              <span className="spinner" aria-hidden="true" /> Loading&hellip;
+            </div>
           ) : purchases.length === 0 ? (
-            <p className="purchase-history-empty">No history yet — your completed sales will appear here.</p>
+            <div className="empty-state">
+              <div className="empty-state-icon" aria-hidden="true">{'\u{1F6CD}'}</div>
+              <div className="empty-state-title">No purchases yet</div>
+              <div className="empty-state-desc">Your completed sales will appear here.</div>
+            </div>
           ) : (
-            <div className="purchase-history-table-wrap">
-              <table className="purchase-history-table">
+            <div className="table-wrap">
+              <table className="table table-striped">
                 <thead>
                   <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col" className="purchase-history-num">
-                      Total
-                    </th>
-                    <th scope="col" className="purchase-history-num">
-                      Discount
-                    </th>
-                    <th scope="col" className="purchase-history-num">
-                      Final amount
-                    </th>
-                    <th scope="col" aria-label="Expand" />
+                    <th>Date</th>
+                    <th className="num">Total</th>
+                    <th className="num">Discount</th>
+                    <th className="num">Final amount</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
                   {purchases.map((inv) => (
                     <Fragment key={inv.id}>
                       <tr
-                        className={`purchase-history-row-expandable${expandedId === inv.id ? ' expanded' : ''}`}
+                        className="row-expandable"
                         onClick={() => toggleExpand(inv.id)}
                         onKeyDown={(ev) => {
                           if (ev.key === 'Enter' || ev.key === ' ') {
@@ -155,52 +161,47 @@ function PurchaseHistory() {
                         tabIndex={0}
                         role="button"
                         aria-expanded={expandedId === inv.id}
-                        aria-label={`Invoice ${inv.id}, ${formatDateTime(inv.saleDate)}`}
                       >
-                        <td>{formatDateTime(inv.saleDate)}</td>
-                        <td className="purchase-history-num">{formatMoney(inv.totalAmount)}</td>
-                        <td className="purchase-history-num">{formatMoney(inv.discountApplied)}</td>
-                        <td className="purchase-history-num">{formatMoney(inv.finalAmount)}</td>
-                        <td>
-                          <span className="purchase-history-expand-hint">{expandedId === inv.id ? 'Hide' : 'Items'}</span>
+                        <td><strong>{formatDateTime(inv.saleDate)}</strong></td>
+                        <td className="num">{formatMoney(inv.totalAmount)}</td>
+                        <td className="num">
+                          {Number(inv.discountApplied) > 0 ? (
+                            <span className="badge badge-success">{formatMoney(inv.discountApplied)}</span>
+                          ) : (
+                            <span className="muted">{'\u2014'}</span>
+                          )}
                         </td>
+                        <td className="num"><strong>{formatMoney(inv.finalAmount)}</strong></td>
+                        <td className="text-right muted">{expandedId === inv.id ? 'Hide' : 'View items'}</td>
                       </tr>
                       {expandedId === inv.id ? (
-                        <tr key={`${inv.id}-detail`} className="purchase-history-detail-row">
+                        <tr key={`${inv.id}-detail`} className="row-detail">
                           <td colSpan={5}>
-                            <div className="purchase-history-detail-inner">
-                              <h3>Line items</h3>
-                              {inv.items?.length ? (
-                                <table className="purchase-history-items-mini">
-                                  <thead>
-                                    <tr>
-                                      <th scope="col">Part</th>
-                                      <th scope="col" className="purchase-history-num">
-                                        Qty
-                                      </th>
-                                      <th scope="col" className="purchase-history-num">
-                                        Unit
-                                      </th>
-                                      <th scope="col" className="purchase-history-num">
-                                        Subtotal
-                                      </th>
+                            <h3 style={{ fontSize: '0.875rem', marginBottom: 'var(--space-2)' }}>Line items</h3>
+                            {inv.items?.length ? (
+                              <table className="line-table">
+                                <thead>
+                                  <tr>
+                                    <th>Part</th>
+                                    <th className="num">Qty</th>
+                                    <th className="num">Unit</th>
+                                    <th className="num">Subtotal</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {inv.items.map((line, idx) => (
+                                    <tr key={`${inv.id}-line-${idx}`}>
+                                      <td>{line.partName || '\u2014'}</td>
+                                      <td className="num">{line.quantity}</td>
+                                      <td className="num">{formatMoney(line.unitPrice)}</td>
+                                      <td className="num"><strong>{formatMoney(line.subTotal)}</strong></td>
                                     </tr>
-                                  </thead>
-                                  <tbody>
-                                    {inv.items.map((line, idx) => (
-                                      <tr key={`${inv.id}-line-${idx}`}>
-                                        <td>{line.partName || '—'}</td>
-                                        <td className="purchase-history-num">{line.quantity}</td>
-                                        <td className="purchase-history-num">{formatMoney(line.unitPrice)}</td>
-                                        <td className="purchase-history-num">{formatMoney(line.subTotal)}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              ) : (
-                                <p className="customer-profile-muted">No line items.</p>
-                              )}
-                            </div>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <p className="muted">No line items.</p>
+                            )}
                           </td>
                         </tr>
                       ) : null}
@@ -212,30 +213,41 @@ function PurchaseHistory() {
           )}
         </div>
       ) : (
-        <div className="customer-profile-card">
-          <h2>Service appointments</h2>
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title">Service appointments</div>
+            <span className="muted">{services.length} record(s)</span>
+          </div>
           {loadingServices ? (
-            <p className="customer-profile-muted">Loading…</p>
+            <div className="loading-state">
+              <span className="spinner" aria-hidden="true" /> Loading&hellip;
+            </div>
           ) : services.length === 0 ? (
-            <p className="purchase-history-empty">No history yet — book an appointment to see it listed here.</p>
+            <div className="empty-state">
+              <div className="empty-state-icon" aria-hidden="true">{'\u{1F527}'}</div>
+              <div className="empty-state-title">No service history yet</div>
+              <div className="empty-state-desc">Book an appointment to see it listed here.</div>
+            </div>
           ) : (
-            <div className="purchase-history-table-wrap">
-              <table className="purchase-history-table">
+            <div className="table-wrap">
+              <table className="table table-striped">
                 <thead>
                   <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">Service type</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Notes</th>
+                    <th>Date</th>
+                    <th>Service type</th>
+                    <th>Status</th>
+                    <th>Notes</th>
                   </tr>
                 </thead>
                 <tbody>
                   {services.map((row) => (
                     <tr key={row.id}>
-                      <td>{formatDateTime(row.appointmentDate)}</td>
-                      <td>{row.serviceType || '—'}</td>
-                      <td>{row.status || '—'}</td>
-                      <td>{row.notes?.trim() ? row.notes : '—'}</td>
+                      <td><strong>{formatDateTime(row.appointmentDate)}</strong></td>
+                      <td>{row.serviceType || '\u2014'}</td>
+                      <td>
+                        <span className={statusBadgeClass(row.status)}>{row.status || 'Unknown'}</span>
+                      </td>
+                      <td className="muted">{row.notes?.trim() ? row.notes : '\u2014'}</td>
                     </tr>
                   ))}
                 </tbody>
