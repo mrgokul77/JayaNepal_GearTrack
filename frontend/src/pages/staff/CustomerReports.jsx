@@ -155,8 +155,6 @@ function CustomerReports() {
               <table className="table table-striped">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>ID</th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -167,8 +165,6 @@ function CustomerReports() {
                 <tbody>
                   {(regularRows ?? []).map((row, idx) => (
                     <tr key={row.customerId}>
-                      <td>{idx + 1}</td>
-                      <td className="muted">#{row.customerId}</td>
                       <td><strong>{row.fullName}</strong></td>
                       <td>{row.email}</td>
                       <td>{row.phone || '\u2014'}</td>
@@ -197,7 +193,6 @@ function CustomerReports() {
                 <thead>
                   <tr>
                     <th>Rank</th>
-                    <th>ID</th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -209,7 +204,6 @@ function CustomerReports() {
                   {(highRows ?? []).map((row, idx) => (
                     <tr key={row.customerId}>
                       <td>{idx + 1}</td>
-                      <td className="muted">#{row.customerId}</td>
                       <td><strong>{row.fullName}</strong></td>
                       <td>{row.email}</td>
                       <td>{row.phone || '\u2014'}</td>
@@ -237,7 +231,6 @@ function CustomerReports() {
               <table className="table table-striped">
                 <thead>
                   <tr>
-                    <th>ID</th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -247,7 +240,6 @@ function CustomerReports() {
                 <tbody>
                   {(pendingRows ?? []).map((row) => (
                     <tr key={row.customerId}>
-                      <td className="muted">#{row.customerId}</td>
                       <td><strong>{row.fullName}</strong></td>
                       <td>{row.email}</td>
                       <td>{row.phone || '\u2014'}</td>

@@ -68,11 +68,13 @@ public class SalesInvoiceController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SendInvoiceEmail(int id)
     {
-        var sent = await _emailService.SendInvoiceEmailAsync(id);
-        if (!sent)
+        try
         {
-            return BadRequest(
-                "Could not send the invoice email. Check that the invoice exists, the customer has an email on file, and EmailSettings (SMTP) are configured.");
+            await _emailService.SendInvoiceEmailAsync(id);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
         }
 
         return Ok(new { message = "Invoice sent to customer" });

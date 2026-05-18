@@ -111,7 +111,6 @@ function LoyaltyStats() {
                 <table className="table table-striped">
                   <thead>
                     <tr>
-                      <th>#</th>
                       <th>Customer</th>
                       <th className="num">Discounted orders</th>
                       <th className="num">Total discount</th>
@@ -120,7 +119,6 @@ function LoyaltyStats() {
                   <tbody>
                     {stats.topCustomers.map((row, idx) => (
                       <tr key={row.customerId}>
-                        <td>{idx + 1}</td>
                         <td><strong>{row.customerName || '\u2014'}</strong></td>
                         <td className="num">{row.discountedInvoiceCount}</td>
                         <td className="num">{formatMoney(row.totalDiscountReceived)}</td>
@@ -143,7 +141,6 @@ function LoyaltyStats() {
                 <table className="table table-striped">
                   <thead>
                     <tr>
-                      <th>Invoice</th>
                       <th>Customer</th>
                       <th>Date</th>
                       <th className="num">Subtotal</th>
@@ -154,7 +151,6 @@ function LoyaltyStats() {
                   <tbody>
                     {stats.discountedInvoices.map((inv) => (
                       <tr key={inv.invoiceId}>
-                        <td><strong>#{inv.invoiceId}</strong></td>
                         <td>{inv.customerName || '\u2014'}</td>
                         <td className="muted">{formatDateTime(inv.saleDate)}</td>
                         <td className="num">{formatMoney(inv.grossBeforeDiscount)}</td>

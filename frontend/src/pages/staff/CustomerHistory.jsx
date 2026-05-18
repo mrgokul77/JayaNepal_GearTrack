@@ -191,7 +191,6 @@ function CustomerHistory() {
                 <table className="table table-striped">
                   <thead>
                     <tr>
-                      <th>Invoice</th>
                       <th>Date</th>
                       <th className="num">Total</th>
                       <th className="num">Discount</th>
@@ -214,7 +213,6 @@ function CustomerHistory() {
                           role="button"
                           aria-expanded={expandedInvoiceId === inv.id}
                         >
-                          <td><strong>#{inv.id}</strong></td>
                           <td className="muted">{formatDateTime(inv.saleDate)}</td>
                           <td className="num">{formatMoney(inv.totalAmount)}</td>
                           <td className="num">
@@ -228,7 +226,7 @@ function CustomerHistory() {
                         </tr>
                         {expandedInvoiceId === inv.id ? (
                           <tr className="row-detail">
-                            <td colSpan={5}>
+                            <td colSpan={4}>
                               <div>
                                 <h3 style={{ fontSize: '0.875rem', marginBottom: 'var(--space-2)' }}>Line items</h3>
                                 {inv.items?.length ? (

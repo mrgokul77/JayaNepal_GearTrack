@@ -286,7 +286,6 @@ function PurchaseInvoice() {
             <table className="table table-striped">
               <thead>
                 <tr>
-                  <th>Invoice</th>
                   <th>Vendor</th>
                   <th>Date</th>
                   <th className="num">Total</th>
@@ -296,7 +295,6 @@ function PurchaseInvoice() {
               <tbody>
                 {invoices.map((inv) => (
                   <tr key={inv.id}>
-                    <td><strong>#{inv.id}</strong></td>
                     <td>{inv.vendorName}</td>
                     <td className="muted">{formatDateTime(inv.purchaseDate)}</td>
                     <td className="num"><strong>{formatMoney(inv.totalAmount)}</strong></td>

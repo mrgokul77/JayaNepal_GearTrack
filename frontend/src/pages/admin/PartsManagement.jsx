@@ -192,7 +192,6 @@ function PartsManagement() {
             <table className="table table-striped">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Name</th>
                   <th>Vendor</th>
                   <th className="num">Price</th>
@@ -204,7 +203,6 @@ function PartsManagement() {
               <tbody>
                 {parts.map((p) => (
                   <tr key={p.id}>
-                    <td className="muted">#{p.id}</td>
                     <td>
                       <strong>{p.name}</strong>
                       {p.description ? <div className="muted" style={{ fontSize: '0.8rem' }}>{p.description}</div> : null}
