@@ -15,6 +15,7 @@ const PAGE_TITLES = {
   '/admin/notifications': 'Notifications',
   '/admin/loyalty': 'Loyalty program',
   '/staff': 'Staff workspace',
+  '/staff/appointments': 'Appointments',
   '/staff/register-customer': 'Register customer',
   '/staff/sales-invoice': 'Sales invoice',
   '/staff/customer-history': 'Customer history',

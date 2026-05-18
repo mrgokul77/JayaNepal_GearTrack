@@ -18,3 +18,8 @@ public class AppointmentResponseDto
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+public class UpdateAppointmentStatusDto
+{
+    public string Status { get; set; } = string.Empty;
+}

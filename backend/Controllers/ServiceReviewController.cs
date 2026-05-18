@@ -44,9 +44,21 @@ public class ServiceReviewController : ControllerBase
             return BadRequest("Rating must be between 1 and 5.");
         }
 
+        // If appointment is linked, validate it exists and belongs to this customer
+        if (dto.AppointmentId.HasValue)
+        {
+            var appointment = await _db.Appointments.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == dto.AppointmentId.Value && a.CustomerId == resolved.CustomerId);
+            if (appointment is null)
+            {
+                return BadRequest("The specified appointment does not exist or does not belong to you.");
+            }
+        }
+
         var entity = new ServiceReview
         {
             CustomerId = resolved.CustomerId,
+            AppointmentId = dto.AppointmentId,
             Rating = dto.Rating,
             Comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim(),
             CreatedAt = DateTime.UtcNow,
@@ -138,6 +150,7 @@ public class ServiceReviewController : ControllerBase
             Id = s.Id,
             CustomerId = s.CustomerId,
             CustomerName = s.Customer?.FullName,
+            AppointmentId = s.AppointmentId,
             Rating = s.Rating,
             Comment = s.Comment,
             CreatedAt = s.CreatedAt,

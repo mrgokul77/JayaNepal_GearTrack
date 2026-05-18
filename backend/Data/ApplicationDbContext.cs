@@ -214,6 +214,11 @@ public class ApplicationDbContext : DbContext
                 .WithMany(c => c.ServiceReviews)
                 .HasForeignKey(s => s.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(s => s.Appointment)
+                .WithMany()
+                .HasForeignKey(s => s.AppointmentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Notification>(entity =>

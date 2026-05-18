@@ -23,6 +23,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import RegisterCustomer from './pages/staff/RegisterCustomer'
 import SearchCustomer from './pages/staff/SearchCustomer'
+import StaffAppointments from './pages/staff/Appointments'
 import CustomerHistory from './pages/staff/CustomerHistory'
 import CustomerReports from './pages/staff/CustomerReports'
 import SalesInvoice from './pages/staff/SalesInvoice'
@@ -54,6 +55,7 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['Staff']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/staff" element={<StaffPage />} />
+          <Route path="/staff/appointments" element={<StaffAppointments />} />
           <Route path="/staff/register-customer" element={<RegisterCustomer />} />
           <Route path="/staff/search-customer" element={<SearchCustomer />} />
           <Route path="/staff/customer-history" element={<CustomerHistory />} />

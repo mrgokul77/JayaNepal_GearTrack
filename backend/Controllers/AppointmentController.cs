@@ -135,6 +135,42 @@ public class AppointmentController : ControllerBase
         return Ok(rows.Select(Map).ToList());
     }
 
+    /// <summary>Updates an appointment's status (Admin and Staff only).</summary>
+    [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = "Admin,Staff")]
+    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AppointmentResponseDto>> UpdateStatus(int id, [FromBody] UpdateAppointmentStatusDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Status))
+        {
+            return BadRequest("Status is required.");
+        }
+
+        var validStatuses = new[] { "Pending", "Confirmed", "Completed", "Cancelled" };
+        if (!validStatuses.Contains(dto.Status, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest($"Status must be one of: {string.Join(", ", validStatuses)}");
+        }
+
+        var appointment = await _db.Appointments
+            .Include(a => a.Customer)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (appointment is null)
+        {
+            return NotFound("Appointment not found.");
+        }
+
+        appointment.Status = dto.Status;
+        await _db.SaveChangesAsync();
+
+        return Ok(Map(appointment));
+    }
+
     private async Task<(ActionResult? Error, int CustomerId)> ResolveCustomerAsync()
     {
         if (!TryResolveUserId(out var userId))

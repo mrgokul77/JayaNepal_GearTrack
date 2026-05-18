@@ -22,6 +22,7 @@ const navByRole = {
   ],
   Staff: [
     { path: '/staff', label: 'Dashboard', icon: '\u25A3' },
+    { path: '/staff/appointments', label: 'Appointments', icon: '\u{1F4C5}' },
     { path: '/staff/register-customer', label: 'Register Customer', icon: '\u2795' },
     { path: '/staff/sales-invoice', label: 'Sales Invoice', icon: '\u{1F4C4}' },
     { path: '/staff/customer-history', label: 'Customer History', icon: '\u{1F4DC}' },
