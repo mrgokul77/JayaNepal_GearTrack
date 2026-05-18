@@ -122,7 +122,6 @@ function SearchCustomer() {
             <table className="table table-striped table-hover">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Full name</th>
                   <th>Phone</th>
                   <th>Email</th>
@@ -137,7 +136,6 @@ function SearchCustomer() {
                     tabIndex={0}
                     onKeyDown={(e) => e.key === 'Enter' && setSelected(row)}
                   >
-                    <td className="muted">#{row.id}</td>
                     <td><strong>{row.fullName}</strong></td>
                     <td>{row.phone}</td>
                     <td>{row.email}</td>

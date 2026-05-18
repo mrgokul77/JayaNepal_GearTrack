@@ -353,7 +353,6 @@ function SalesInvoice() {
             <table className="table table-striped">
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Date</th>
                   <th>Customer</th>
                   <th>Staff</th>
@@ -369,7 +368,6 @@ function SalesInvoice() {
                   const sendingThis = sendingEmailInvoiceId === inv.id
                   return (
                     <tr key={inv.id}>
-                      <td><strong>#{inv.id}</strong></td>
                       <td className="muted">{formatDateTime(inv.saleDate)}</td>
                       <td>{inv.customerName}</td>
                       <td>{inv.staffName}</td>

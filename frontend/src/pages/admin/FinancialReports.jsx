@@ -307,7 +307,6 @@ function FinancialReports() {
                 <table className="table table-striped">
                   <thead>
                     <tr>
-                      <th>#</th>
                       <th>Part</th>
                       <th className="num">Qty sold</th>
                       <th className="num">Revenue</th>
@@ -316,7 +315,6 @@ function FinancialReports() {
                   <tbody>
                     {dailyReport.topParts.map((row, idx) => (
                       <tr key={`${row.partName}-${idx}`}>
-                        <td>{idx + 1}</td>
                         <td>{row.partName || '\u2014'}</td>
                         <td className="num">{row.quantitySold}</td>
                         <td className="num">{formatMoney(row.totalRevenue)}</td>
@@ -348,7 +346,6 @@ function FinancialReports() {
                 <table className="table table-striped">
                   <thead>
                     <tr>
-                      <th>#</th>
                       <th>Part</th>
                       <th className="num">Qty sold</th>
                       <th className="num">Revenue</th>
@@ -357,7 +354,6 @@ function FinancialReports() {
                   <tbody>
                     {monthlyReport.topParts.map((row, idx) => (
                       <tr key={`${row.partName}-${idx}`}>
-                        <td>{idx + 1}</td>
                         <td>{row.partName || '\u2014'}</td>
                         <td className="num">{row.quantitySold}</td>
                         <td className="num">{formatMoney(row.totalRevenue)}</td>
