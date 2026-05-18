@@ -59,6 +59,7 @@ function App() {
           <Route path="/staff/register-customer" element={<RegisterCustomer />} />
           <Route path="/staff/search-customer" element={<SearchCustomer />} />
           <Route path="/staff/customer-history" element={<CustomerHistory />} />
+          <Route path="/staff/customer-history/:id" element={<CustomerHistory />} />
           <Route path="/staff/customer-reports" element={<CustomerReports />} />
           <Route path="/staff/sales-invoice" element={<SalesInvoice />} />
         </Route>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 
 function getErrorMessage(error, fallback) {
@@ -24,6 +25,7 @@ function formatDateTime(value) {
 }
 
 function SearchCustomer() {
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [hasSearched, setHasSearched] = useState(false)
@@ -122,10 +124,11 @@ function SearchCustomer() {
             <table className="table table-striped table-hover">
               <thead>
                 <tr>
+                  <th>Customer ID</th>
                   <th>Full name</th>
                   <th>Phone</th>
                   <th>Email</th>
-                  <th>Vehicles</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,10 +139,22 @@ function SearchCustomer() {
                     tabIndex={0}
                     onKeyDown={(e) => e.key === 'Enter' && setSelected(row)}
                   >
+                    <td><strong>#{row.id}</strong></td>
                     <td><strong>{row.fullName}</strong></td>
                     <td>{row.phone}</td>
                     <td>{row.email}</td>
-                    <td className="muted">{formatVehiclesSummary(row.vehicles)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/staff/customer-history/${row.id}`)
+                        }}
+                      >
+                        View History
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

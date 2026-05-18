@@ -1,4 +1,5 @@
-import { Fragment, useCallback, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import api from '../../services/api'
 
 function getErrorMessage(error, fallback) {
@@ -49,11 +50,22 @@ function initials(name) {
 }
 
 function CustomerHistory() {
+  const { id: urlParamId } = useParams()
   const [customerIdInput, setCustomerIdInput] = useState('')
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [expandedInvoiceId, setExpandedInvoiceId] = useState(null)
+
+  // Auto-load customer history if URL param exists
+  useEffect(() => {
+    if (urlParamId) {
+      const id = Number.parseInt(urlParamId, 10)
+      if (!Number.isNaN(id) && id > 0) {
+        setCustomerIdInput(String(id))
+      }
+    }
+  }, [urlParamId])
 
   const loadProfile = useCallback(async () => {
     const raw = customerIdInput.trim()
@@ -82,6 +94,16 @@ function CustomerHistory() {
       setLoading(false)
     }
   }, [customerIdInput])
+
+  // Auto-load when URL param changes
+  useEffect(() => {
+    if (urlParamId) {
+      const id = Number.parseInt(urlParamId, 10)
+      if (!Number.isNaN(id) && id > 0) {
+        void loadProfile()
+      }
+    }
+  }, [urlParamId, loadProfile])
 
   const handleSubmit = (event) => {
     event.preventDefault()

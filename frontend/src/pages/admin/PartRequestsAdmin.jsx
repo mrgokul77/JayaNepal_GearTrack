@@ -21,6 +21,8 @@ function formatDateTime(value) {
 function statusBadgeClass(status) {
   const s = String(status || '').toLowerCase()
   if (s === 'pending') return 'badge badge-warning'
+  if (s === 'ordered') return 'badge badge-info'
+  if (s === 'available') return 'badge badge-success'
   if (s === 'fulfilled' || s === 'completed') return 'badge badge-success'
   if (s === 'rejected') return 'badge badge-danger'
   return 'badge badge-neutral'
@@ -30,6 +32,7 @@ function PartRequestsAdmin() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [updating, setUpdating] = useState(null)
 
   const load = useCallback(async () => {
     setError('')
@@ -44,6 +47,35 @@ function PartRequestsAdmin() {
       setLoading(false)
     }
   }, [])
+
+  const handleStatusChange = async (requestId, newStatus) => {
+    setUpdating(requestId)
+    console.log(`[PartRequests] Changing status for request ${requestId} to "${newStatus}"`)
+    try {
+      console.log(`[PartRequests] Sending PATCH to /part-requests/${requestId}/status`)
+      console.log(`[PartRequests] Body:`, JSON.stringify({ status: newStatus }))
+      
+      const { data } = await api.patch(`/part-requests/${requestId}/status`, {
+        status: newStatus,
+      })
+      
+      console.log(`[PartRequests] Response received:`, data)
+      
+      // Update the item in the list
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === requestId ? { ...item, status: data.status } : item
+        )
+      )
+    } catch (e) {
+      console.error(`[PartRequests] Error updating status:`, e)
+      console.error(`[PartRequests] Response status:`, e.response?.status)
+      console.error(`[PartRequests] Response data:`, e.response?.data)
+      setError(getErrorMessage(e, 'Failed to update part request status.'))
+    } finally {
+      setUpdating(null)
+    }
+  }
 
   useEffect(() => {
     void load()
@@ -93,7 +125,23 @@ function PartRequestsAdmin() {
                     <td>{row.customerName || `Customer #${row.customerId}`}</td>
                     <td className="muted">{row.description || '\u2014'}</td>
                     <td>
-                      <span className={statusBadgeClass(row.status)}>{row.status || 'Unknown'}</span>
+                      <select
+                        className="form-select"
+                        value={row.status || 'Pending'}
+                        onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                        disabled={updating === row.id}
+                        style={{ minWidth: '120px' }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Ordered">Ordered</option>
+                        <option value="Available">Available</option>
+                      </select>
+                      <span
+                        className={statusBadgeClass(row.status)}
+                        style={{ marginLeft: '8px', display: 'inline-block' }}
+                      >
+                        {row.status || 'Unknown'}
+                      </span>
                     </td>
                     <td className="muted">{formatDateTime(row.createdAt)}</td>
                   </tr>
