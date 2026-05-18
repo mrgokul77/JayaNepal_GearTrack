@@ -10,6 +10,24 @@ const FEATURES = [
     desc: 'Create, edit, and remove Staff and Admin accounts.',
   },
   {
+    to: '/admin/appointments',
+    icon: '\u{1F4C5}',
+    title: 'Appointments',
+    desc: 'View all customer service appointments.',
+  },
+  {
+    to: '/admin/part-requests',
+    icon: '\u2709',
+    title: 'Part requests',
+    desc: 'Track all unavailable-part requests from customers.',
+  },
+  {
+    to: '/admin/reviews',
+    icon: '\u2B50',
+    title: 'Service reviews',
+    desc: 'Monitor customer feedback and ratings.',
+  },
+  {
     to: '/admin/vendors',
     icon: '\u{1F3E2}',
     title: 'Vendors',

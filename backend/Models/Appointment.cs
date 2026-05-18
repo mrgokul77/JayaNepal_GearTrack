@@ -9,7 +9,7 @@ public class Appointment
     public int CustomerId { get; set; }
     public DateTime AppointmentDate { get; set; }
     public string ServiceType { get; set; } = string.Empty;
-    /// <summary>One of: Pending, Confirmed, Cancelled.</summary>
+    /// <summary>One of: Pending, Confirmed, Completed, Cancelled.</summary>
     public string Status { get; set; } = "Pending";
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

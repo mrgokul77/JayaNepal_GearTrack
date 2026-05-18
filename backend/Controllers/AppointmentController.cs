@@ -14,7 +14,7 @@ namespace backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/appointments")]
-[Authorize(Roles = "Customer")]
+[Authorize]
 public class AppointmentController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -26,6 +26,7 @@ public class AppointmentController : ControllerBase
 
     /// <summary>Creates a new appointment in <c>Pending</c> status.</summary>
     [HttpPost]
+    [Authorize(Roles = "Customer")]
     [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -63,6 +64,7 @@ public class AppointmentController : ControllerBase
 
     /// <summary>Returns the signed-in customer's appointments, newest first.</summary>
     [HttpGet]
+    [Authorize(Roles = "Customer")]
     [ProducesResponseType(typeof(List<AppointmentResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -84,6 +86,7 @@ public class AppointmentController : ControllerBase
 
     /// <summary>Cancels a <c>Pending</c> appointment by setting status to <c>Cancelled</c>.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Customer")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -113,6 +116,59 @@ public class AppointmentController : ControllerBase
         await _db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    /// <summary>Returns all customer appointments (Admin and Staff only), newest first.</summary>
+    [HttpGet("all")]
+    [Authorize(Roles = "Admin,Staff")]
+    [ProducesResponseType(typeof(List<AppointmentResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<AppointmentResponseDto>>> GetAll()
+    {
+        var rows = await _db.Appointments.AsNoTracking()
+            .Include(a => a.Customer)
+            .OrderByDescending(a => a.AppointmentDate)
+            .ThenByDescending(a => a.Id)
+            .ToListAsync();
+
+        return Ok(rows.Select(Map).ToList());
+    }
+
+    /// <summary>Updates an appointment's status (Admin and Staff only).</summary>
+    [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = "Admin,Staff")]
+    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AppointmentResponseDto>> UpdateStatus(int id, [FromBody] UpdateAppointmentStatusDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Status))
+        {
+            return BadRequest("Status is required.");
+        }
+
+        var validStatuses = new[] { "Pending", "Confirmed", "Completed", "Cancelled" };
+        if (!validStatuses.Contains(dto.Status, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest($"Status must be one of: {string.Join(", ", validStatuses)}");
+        }
+
+        var appointment = await _db.Appointments
+            .Include(a => a.Customer)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (appointment is null)
+        {
+            return NotFound("Appointment not found.");
+        }
+
+        appointment.Status = dto.Status;
+        await _db.SaveChangesAsync();
+
+        return Ok(Map(appointment));
     }
 
     private async Task<(ActionResult? Error, int CustomerId)> ResolveCustomerAsync()
@@ -155,6 +211,8 @@ public class AppointmentController : ControllerBase
         new()
         {
             Id = a.Id,
+            CustomerId = a.CustomerId,
+            CustomerName = a.Customer?.FullName,
             AppointmentDate = a.AppointmentDate,
             ServiceType = a.ServiceType,
             Status = a.Status,

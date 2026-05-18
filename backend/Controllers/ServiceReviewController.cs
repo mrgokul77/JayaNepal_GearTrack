@@ -44,9 +44,21 @@ public class ServiceReviewController : ControllerBase
             return BadRequest("Rating must be between 1 and 5.");
         }
 
+        // If appointment is linked, validate it exists and belongs to this customer
+        if (dto.AppointmentId.HasValue)
+        {
+            var appointment = await _db.Appointments.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == dto.AppointmentId.Value && a.CustomerId == resolved.CustomerId);
+            if (appointment is null)
+            {
+                return BadRequest("The specified appointment does not exist or does not belong to you.");
+            }
+        }
+
         var entity = new ServiceReview
         {
             CustomerId = resolved.CustomerId,
+            AppointmentId = dto.AppointmentId,
             Rating = dto.Rating,
             Comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim(),
             CreatedAt = DateTime.UtcNow,
@@ -55,7 +67,13 @@ public class ServiceReviewController : ControllerBase
         _db.ServiceReviews.Add(entity);
         await _db.SaveChangesAsync();
 
-        return StatusCode(StatusCodes.Status201Created, Map(entity));
+        // Reload with related data for response
+        var saved = await _db.ServiceReviews.AsNoTracking()
+            .Include(s => s.Customer)
+            .Include(s => s.Appointment)
+            .FirstOrDefaultAsync(s => s.Id == entity.Id);
+
+        return StatusCode(StatusCodes.Status201Created, Map(saved!));
     }
 
     /// <summary>Returns reviews submitted by the signed-in customer.</summary>
@@ -73,6 +91,8 @@ public class ServiceReviewController : ControllerBase
         }
 
         var rows = await _db.ServiceReviews.AsNoTracking()
+            .Include(s => s.Customer)
+            .Include(s => s.Appointment)
             .Where(s => s.CustomerId == resolved.CustomerId)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
@@ -89,6 +109,8 @@ public class ServiceReviewController : ControllerBase
     public async Task<ActionResult<List<ServiceReviewResponseDto>>> GetAll()
     {
         var rows = await _db.ServiceReviews.AsNoTracking()
+            .Include(s => s.Customer)
+            .Include(s => s.Appointment)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
 
@@ -134,6 +156,11 @@ public class ServiceReviewController : ControllerBase
         new()
         {
             Id = s.Id,
+            CustomerId = s.CustomerId,
+            CustomerName = s.Customer?.FullName,
+            AppointmentId = s.AppointmentId,
+            AppointmentDate = s.Appointment?.AppointmentDate,
+            ServiceType = s.Appointment?.ServiceType,
             Rating = s.Rating,
             Comment = s.Comment,
             CreatedAt = s.CreatedAt,

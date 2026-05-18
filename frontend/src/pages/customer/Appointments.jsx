@@ -30,6 +30,8 @@ function statusBadgeClass(status) {
   return 'badge badge-neutral'
 }
 
+const STAR_VALUES = [1, 2, 3, 4, 5]
+
 function Appointments() {
   const [items, setItems] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -38,6 +40,16 @@ function Appointments() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [cancellingId, setCancellingId] = useState(null)
+
+  // Review modal state
+  const [reviewModal, setReviewModal] = useState({
+    open: false,
+    appointmentId: null,
+    appointmentDetails: null,
+    rating: 5,
+    comment: '',
+  })
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
   const load = useCallback(async () => {
     setError('')
@@ -104,6 +116,55 @@ function Appointments() {
       setError(getErrorMessage(e, 'Could not cancel appointment.'))
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  const openReviewModal = (appointment) => {
+    setReviewModal({
+      open: true,
+      appointmentId: appointment.id,
+      appointmentDetails: appointment,
+      rating: 5,
+      comment: '',
+    })
+    setError('')
+  }
+
+  const closeReviewModal = () => {
+    if (reviewSubmitting) return
+    setReviewModal({
+      open: false,
+      appointmentId: null,
+      appointmentDetails: null,
+      rating: 5,
+      comment: '',
+    })
+  }
+
+  const handleReviewSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (reviewModal.rating < 1 || reviewModal.rating > 5) {
+      setError('Please choose a rating from 1 to 5.')
+      return
+    }
+
+    setReviewSubmitting(true)
+    try {
+      await api.post('/service-reviews', {
+        rating: reviewModal.rating,
+        comment: reviewModal.comment?.trim() || null,
+        appointmentId: reviewModal.appointmentId,
+      })
+      setSuccess('Thank you — your review was submitted.')
+      closeReviewModal()
+      await load()
+    } catch (e) {
+      setError(getErrorMessage(e, 'Could not submit review.'))
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -224,6 +285,14 @@ function Appointments() {
                           >
                             {cancellingId === row.id ? 'Cancelling\u2026' : 'Cancel'}
                           </button>
+                        ) : String(row.status).toLowerCase() === 'completed' ? (
+                          <button
+                            type="button"
+                            className="btn btn-success btn-sm"
+                            onClick={() => openReviewModal(row)}
+                          >
+                            {'\u2B50'} Leave a Review
+                          </button>
                         ) : null}
                       </div>
                     </td>
@@ -234,6 +303,88 @@ function Appointments() {
           </div>
         )}
       </div>
+
+      {reviewModal.open && reviewModal.appointmentDetails ? (
+        <div className="modal-overlay" role="presentation" onClick={closeReviewModal}>
+          <div
+            className="modal modal-lg"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="review-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2 id="review-title" className="modal-title">Leave a review for this appointment</h2>
+              <button type="button" className="modal-close" onClick={closeReviewModal} aria-label="Close">
+                {'\u00D7'}
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="card" style={{ marginBottom: 'var(--space-4)', border: '1px solid var(--color-border)' }}>
+                <div style={{ padding: 'var(--space-3)' }}>
+                  <strong>{reviewModal.appointmentDetails.serviceType}</strong>
+                  <div className="muted" style={{ fontSize: '0.875rem', marginTop: 4 }}>
+                    {formatDateTime(reviewModal.appointmentDetails.appointmentDate)}
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleReviewSubmit}>
+                <div className="form-group">
+                  <label className="form-label">Rating</label>
+                  <div className="star-row" role="group" aria-label="Rating 1 to 5 stars">
+                    {STAR_VALUES.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={`star-btn${reviewModal.rating >= n ? ' active' : ''}`}
+                        aria-pressed={reviewModal.rating === n}
+                        aria-label={`${n} star${n === 1 ? '' : 's'}`}
+                        onClick={() => setReviewModal((prev) => ({ ...prev, rating: n }))}
+                      >
+                        {'\u2605'}
+                      </button>
+                    ))}
+                    <span className="muted" style={{ marginLeft: 8 }}>{reviewModal.rating} / 5</span>
+                  </div>
+                </div>
+
+                <div className="form-group mt-4">
+                  <label className="form-label" htmlFor="review-comment">Comment (optional)</label>
+                  <textarea
+                    id="review-comment"
+                    className="form-textarea"
+                    value={reviewModal.comment}
+                    onChange={(e) => setReviewModal((prev) => ({ ...prev, comment: e.target.value }))}
+                    rows={4}
+                    placeholder="What went well or what we could improve"
+                  />
+                </div>
+
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closeReviewModal}
+                    disabled={reviewSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={reviewSubmitting}>
+                    {reviewSubmitting ? (
+                      <>
+                        <span className="spinner" aria-hidden="true" /> Submitting&hellip;
+                      </>
+                    ) : (
+                      'Submit review'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

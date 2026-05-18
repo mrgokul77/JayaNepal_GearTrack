@@ -78,10 +78,14 @@ public class CustomerHistoryController : ControllerBase
     private async Task<Customer?> LoadCustomerWithHistoryAsync(int customerId)
     {
         return await _db.Customers.AsNoTracking()
+            .AsSplitQuery()
             .Include(c => c.Vehicles)
             .Include(c => c.SalesInvoices)
             .ThenInclude(si => si.Items)
             .ThenInclude(i => i.Part)
+            .Include(c => c.Appointments)
+            .Include(c => c.PartRequests)
+            .Include(c => c.ServiceReviews)
             .FirstOrDefaultAsync(c => c.Id == customerId);
     }
 
@@ -100,6 +104,42 @@ public class CustomerHistoryController : ControllerBase
                 .Select(MapVehicle)
                 .ToList(),
             PurchaseHistory = MapPurchaseHistory(customer),
+            Appointments = customer.Appointments
+                .OrderByDescending(a => a.AppointmentDate)
+                .ThenByDescending(a => a.Id)
+                .Select(a => new CustomerAppointmentDto
+                {
+                    Id = a.Id,
+                    AppointmentDate = a.AppointmentDate,
+                    ServiceType = a.ServiceType,
+                    Status = a.Status,
+                    Notes = a.Notes,
+                    CreatedAt = a.CreatedAt,
+                })
+                .ToList(),
+            PartRequests = customer.PartRequests
+                .OrderByDescending(p => p.CreatedAt)
+                .ThenByDescending(p => p.Id)
+                .Select(p => new CustomerPartRequestDto
+                {
+                    Id = p.Id,
+                    PartName = p.PartName,
+                    Description = p.Description,
+                    Status = p.Status,
+                    CreatedAt = p.CreatedAt,
+                })
+                .ToList(),
+            ServiceReviews = customer.ServiceReviews
+                .OrderByDescending(s => s.CreatedAt)
+                .ThenByDescending(s => s.Id)
+                .Select(s => new CustomerServiceReviewDto
+                {
+                    Id = s.Id,
+                    Rating = s.Rating,
+                    Comment = s.Comment,
+                    CreatedAt = s.CreatedAt,
+                })
+                .ToList(),
         };
     }
 

@@ -4,6 +4,12 @@ import api from '../services/api'
 
 const FEATURES = [
   {
+    to: '/staff/appointments',
+    icon: '\u{1F4C5}',
+    title: 'Manage appointments',
+    desc: 'View and update the status of customer service appointments.',
+  },
+  {
     to: '/staff/register-customer',
     icon: '\u{1F464}',
     title: 'Register customer',

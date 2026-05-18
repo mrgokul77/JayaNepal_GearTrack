@@ -5,6 +5,9 @@ import Sidebar from '../components/Sidebar'
 const PAGE_TITLES = {
   '/admin': 'Admin dashboard',
   '/admin/register-staff': 'Staff management',
+  '/admin/appointments': 'All appointments',
+  '/admin/part-requests': 'All part requests',
+  '/admin/reviews': 'All reviews',
   '/admin/vendors': 'Vendors',
   '/admin/parts': 'Vehicle parts',
   '/admin/purchase-invoices': 'Purchase invoices',
@@ -12,6 +15,7 @@ const PAGE_TITLES = {
   '/admin/notifications': 'Notifications',
   '/admin/loyalty': 'Loyalty program',
   '/staff': 'Staff workspace',
+  '/staff/appointments': 'Appointments',
   '/staff/register-customer': 'Register customer',
   '/staff/sales-invoice': 'Sales invoice',
   '/staff/customer-history': 'Customer history',

@@ -14,7 +14,7 @@ namespace backend.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/part-requests")]
-[Authorize(Roles = "Customer")]
+[Authorize]
 public class PartRequestController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -26,6 +26,7 @@ public class PartRequestController : ControllerBase
 
     /// <summary>Submits a part request in <c>Pending</c> status.</summary>
     [HttpPost]
+    [Authorize(Roles = "Customer")]
     [ProducesResponseType(typeof(PartRequestResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -60,6 +61,7 @@ public class PartRequestController : ControllerBase
 
     /// <summary>Returns the signed-in customer's part requests, newest first.</summary>
     [HttpGet]
+    [Authorize(Roles = "Customer")]
     [ProducesResponseType(typeof(List<PartRequestResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -74,6 +76,23 @@ public class PartRequestController : ControllerBase
         var rows = await _db.PartRequests.AsNoTracking()
             .Where(p => p.CustomerId == resolved.CustomerId)
             .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        return Ok(rows.Select(Map).ToList());
+    }
+
+    /// <summary>Returns all customer part requests (Admin and Staff only), newest first.</summary>
+    [HttpGet("all")]
+    [Authorize(Roles = "Admin,Staff")]
+    [ProducesResponseType(typeof(List<PartRequestResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<PartRequestResponseDto>>> GetAll()
+    {
+        var rows = await _db.PartRequests.AsNoTracking()
+            .Include(p => p.Customer)
+            .OrderByDescending(p => p.CreatedAt)
+            .ThenByDescending(p => p.Id)
             .ToListAsync();
 
         return Ok(rows.Select(Map).ToList());
@@ -118,6 +137,8 @@ public class PartRequestController : ControllerBase
         new()
         {
             Id = p.Id,
+            CustomerId = p.CustomerId,
+            CustomerName = p.Customer?.FullName,
             PartName = p.PartName,
             Description = p.Description,
             Status = p.Status,
