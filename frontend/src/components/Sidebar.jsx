@@ -10,6 +10,9 @@ const navByRole = {
   Admin: [
     { path: '/admin', label: 'Dashboard', icon: '\u25A3' },
     { path: '/admin/register-staff', label: 'Staff', icon: '\u{1F465}' },
+    { path: '/admin/appointments', label: 'Appointments', icon: '\u{1F4C5}' },
+    { path: '/admin/part-requests', label: 'Part Requests', icon: '\u2709' },
+    { path: '/admin/reviews', label: 'Reviews', icon: '\u2B50' },
     { path: '/admin/vendors', label: 'Vendors', icon: '\u{1F3E2}' },
     { path: '/admin/parts', label: 'Parts', icon: '\u2699' },
     { path: '/admin/purchase-invoices', label: 'Purchase Invoices', icon: '\u{1F4E6}' },

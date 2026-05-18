@@ -30,6 +30,14 @@ function formatDateTime(value) {
   }
 }
 
+function statusBadgeClass(status) {
+  const s = String(status || '').toLowerCase()
+  if (s === 'pending') return 'badge badge-warning'
+  if (s === 'confirmed' || s === 'completed' || s === 'fulfilled') return 'badge badge-success'
+  if (s === 'cancelled' || s === 'canceled' || s === 'rejected') return 'badge badge-danger'
+  return 'badge badge-neutral'
+}
+
 function initials(name) {
   if (!name) return '?'
   return name
@@ -264,6 +272,101 @@ function CustomerHistory() {
               </div>
             ) : (
               <p className="muted">No sales on record for this customer.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">Service appointments</div>
+            </div>
+            {detail.appointments?.length ? (
+              <div className="table-wrap">
+                <table className="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>When</th>
+                      <th>Service type</th>
+                      <th>Status</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.appointments.map((row) => (
+                      <tr key={row.id}>
+                        <td><strong>{formatDateTime(row.appointmentDate)}</strong></td>
+                        <td>{row.serviceType || '\u2014'}</td>
+                        <td>
+                          <span className={statusBadgeClass(row.status)}>{row.status || 'Unknown'}</span>
+                        </td>
+                        <td className="muted">{row.notes?.trim() ? row.notes : '\u2014'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted">No service appointments on record.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">Part requests</div>
+            </div>
+            {detail.partRequests?.length ? (
+              <div className="table-wrap">
+                <table className="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Part</th>
+                      <th>Description</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.partRequests.map((row) => (
+                      <tr key={row.id}>
+                        <td><strong>{row.partName}</strong></td>
+                        <td className="muted">{row.description || '\u2014'}</td>
+                        <td>
+                          <span className={statusBadgeClass(row.status)}>{row.status || 'Unknown'}</span>
+                        </td>
+                        <td className="muted">{formatDateTime(row.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted">No part requests on record.</p>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">Service reviews</div>
+            </div>
+            {detail.serviceReviews?.length ? (
+              <ul className="notification-list">
+                {detail.serviceReviews.map((row) => {
+                  const rating = Math.min(5, Math.max(0, Number(row.rating) || 0))
+                  return (
+                    <li key={row.id} className="notification-item">
+                      <div className="notification-header">
+                        <span className="star-display" aria-label={`${rating} of 5 stars`}>
+                          {'\u2605'.repeat(rating)}
+                          <span style={{ color: '#d1d5db' }}>{'\u2605'.repeat(5 - rating)}</span>
+                        </span>
+                        <span className="notification-meta">{formatDateTime(row.createdAt)}</span>
+                      </div>
+                      {row.comment ? <p className="notification-message">{row.comment}</p> : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <p className="muted">No service reviews on record.</p>
             )}
           </div>
         </>

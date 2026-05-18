@@ -73,6 +73,7 @@ public class ServiceReviewController : ControllerBase
         }
 
         var rows = await _db.ServiceReviews.AsNoTracking()
+            .Include(s => s.Customer)
             .Where(s => s.CustomerId == resolved.CustomerId)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
@@ -89,6 +90,7 @@ public class ServiceReviewController : ControllerBase
     public async Task<ActionResult<List<ServiceReviewResponseDto>>> GetAll()
     {
         var rows = await _db.ServiceReviews.AsNoTracking()
+            .Include(s => s.Customer)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
 
@@ -134,6 +136,8 @@ public class ServiceReviewController : ControllerBase
         new()
         {
             Id = s.Id,
+            CustomerId = s.CustomerId,
+            CustomerName = s.Customer?.FullName,
             Rating = s.Rating,
             Comment = s.Comment,
             CreatedAt = s.CreatedAt,

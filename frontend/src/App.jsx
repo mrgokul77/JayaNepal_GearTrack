@@ -2,12 +2,15 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
+import AppointmentsAdmin from './pages/admin/AppointmentsAdmin'
 import FinancialReports from './pages/admin/FinancialReports'
 import LoyaltyStats from './pages/admin/LoyaltyStats'
 import Notifications from './pages/admin/Notifications'
+import PartRequestsAdmin from './pages/admin/PartRequestsAdmin'
 import PurchaseInvoice from './pages/admin/PurchaseInvoice'
 import PartsManagement from './pages/admin/PartsManagement'
 import RegisterStaff from './pages/admin/RegisterStaff'
+import ServiceReviewsAdmin from './pages/admin/ServiceReviewsAdmin'
 import VendorManagement from './pages/admin/VendorManagement'
 import CustomerPage from './pages/CustomerPage'
 import Appointments from './pages/customer/Appointments'
@@ -36,6 +39,9 @@ function App() {
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/register-staff" element={<RegisterStaff />} />
+          <Route path="/admin/appointments" element={<AppointmentsAdmin />} />
+          <Route path="/admin/part-requests" element={<PartRequestsAdmin />} />
+          <Route path="/admin/reviews" element={<ServiceReviewsAdmin />} />
           <Route path="/admin/vendors" element={<VendorManagement />} />
           <Route path="/admin/parts" element={<PartsManagement />} />
           <Route path="/admin/purchase-invoices" element={<PurchaseInvoice />} />

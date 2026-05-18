@@ -10,6 +10,9 @@ public class CustomerDetailDto
     public DateTime CreatedAt { get; set; }
     public List<VehicleDto> Vehicles { get; set; } = new();
     public List<PurchaseHistoryDto> PurchaseHistory { get; set; } = new();
+    public List<CustomerAppointmentDto> Appointments { get; set; } = new();
+    public List<CustomerPartRequestDto> PartRequests { get; set; } = new();
+    public List<CustomerServiceReviewDto> ServiceReviews { get; set; } = new();
 }
 
 public class VehicleDto
@@ -36,4 +39,31 @@ public class PurchaseItemDto
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal SubTotal { get; set; }
+}
+
+public class CustomerAppointmentDto
+{
+    public int Id { get; set; }
+    public DateTime AppointmentDate { get; set; }
+    public string ServiceType { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CustomerPartRequestDto
+{
+    public int Id { get; set; }
+    public string PartName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CustomerServiceReviewDto
+{
+    public int Id { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
