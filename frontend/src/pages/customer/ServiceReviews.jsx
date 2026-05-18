@@ -18,16 +18,19 @@ function formatDateTime(value) {
   }
 }
 
-const STAR_VALUES = [1, 2, 3, 4, 5]
+function formatDate(value) {
+  if (!value) return '\u2014'
+  try {
+    return new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' })
+  } catch {
+    return String(value)
+  }
+}
 
 function ServiceReviews() {
   const [items, setItems] = useState([])
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
 
   const load = useCallback(async () => {
     setError('')
@@ -47,92 +50,16 @@ function ServiceReviews() {
     void load()
   }, [load])
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-    setError('')
-    setSuccess('')
-    if (rating < 1 || rating > 5) {
-      setError('Please choose a rating from 1 to 5.')
-      return
-    }
-    setSubmitting(true)
-    try {
-      await api.post('/service-reviews', {
-        rating,
-        comment: comment.trim() || null,
-      })
-      setSuccess('Thank you \u2014 your review was submitted.')
-      setComment('')
-      setRating(5)
-      await load()
-    } catch (e) {
-      setError(getErrorMessage(e, 'Could not submit review.'))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
     <section>
       <div className="page-header">
         <div>
           <h1 className="page-title">Service reviews</h1>
-          <p className="page-subtitle">Rate your experience and leave feedback for our team.</p>
+          <p className="page-subtitle">Your submitted service reviews from completed appointments.</p>
         </div>
       </div>
 
       {error ? <div className="alert alert-error">{error}</div> : null}
-      {success ? <div className="alert alert-success">{success}</div> : null}
-
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">Submit a review</div>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Rating</label>
-            <div className="star-row" role="group" aria-label="Rating 1 to 5 stars">
-              {STAR_VALUES.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={`star-btn${rating >= n ? ' active' : ''}`}
-                  aria-pressed={rating === n}
-                  aria-label={`${n} star${n === 1 ? '' : 's'}`}
-                  onClick={() => setRating(n)}
-                >
-                  {'\u2605'}
-                </button>
-              ))}
-              <span className="muted" style={{ marginLeft: 8 }}>{rating} / 5</span>
-            </div>
-          </div>
-
-          <div className="form-group mt-4">
-            <label className="form-label" htmlFor="comment">Comment (optional)</label>
-            <textarea
-              id="comment"
-              className="form-textarea"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              placeholder="What went well or what we could improve"
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? (
-                <>
-                  <span className="spinner" aria-hidden="true" /> Submitting&hellip;
-                </>
-              ) : (
-                'Submit review'
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
 
       <div className="card">
         <div className="card-header">
@@ -146,27 +73,42 @@ function ServiceReviews() {
         ) : items.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon" aria-hidden="true">{'\u2B50'}</div>
-            <div className="empty-state-title">No reviews yet</div>
-            <div className="empty-state-desc">Submit your first review above.</div>
+            <div className="empty-state-title">No reviews submitted yet</div>
+            <div className="empty-state-desc">
+              You have not submitted any reviews yet. Reviews can be submitted from your completed appointments.
+            </div>
           </div>
         ) : (
-          <ul className="notification-list">
+          <div className="reviews-list">
             {items.map((row) => {
               const r = Math.min(5, Math.max(0, Number(row.rating) || 0))
+              const appointmentDate = row.appointmentDate ? formatDate(row.appointmentDate) : '\u2014'
+              const serviceType = row.serviceType || '\u2014'
               return (
-                <li key={row.id} className="notification-item">
-                  <div className="notification-header">
+                <div key={row.id} className="review-card" style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{serviceType}</div>
+                      <div className="muted" style={{ fontSize: '0.9rem' }}>
+                        Appointment: {appointmentDate}
+                      </div>
+                    </div>
+                    <div className="muted" style={{ fontSize: '0.85rem' }}>
+                      {formatDateTime(row.createdAt)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <span className="star-display" aria-label={`${r} of 5 stars`}>
                       {'\u2605'.repeat(r)}
                       <span style={{ color: '#d1d5db' }}>{'\u2605'.repeat(5 - r)}</span>
                     </span>
-                    <span className="notification-meta">{formatDateTime(row.createdAt)}</span>
+                    <span className="muted" style={{ fontSize: '0.9rem' }}>({r}/5)</span>
                   </div>
-                  {row.comment ? <p className="notification-message">{row.comment}</p> : null}
-                </li>
+                  {row.comment ? <p className="muted" style={{ marginTop: '0.5rem', marginBottom: 0 }}>{row.comment}</p> : null}
+                </div>
               )
             })}
-          </ul>
+          </div>
         )}
       </div>
     </section>

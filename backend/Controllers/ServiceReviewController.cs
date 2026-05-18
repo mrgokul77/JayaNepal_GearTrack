@@ -67,7 +67,13 @@ public class ServiceReviewController : ControllerBase
         _db.ServiceReviews.Add(entity);
         await _db.SaveChangesAsync();
 
-        return StatusCode(StatusCodes.Status201Created, Map(entity));
+        // Reload with related data for response
+        var saved = await _db.ServiceReviews.AsNoTracking()
+            .Include(s => s.Customer)
+            .Include(s => s.Appointment)
+            .FirstOrDefaultAsync(s => s.Id == entity.Id);
+
+        return StatusCode(StatusCodes.Status201Created, Map(saved!));
     }
 
     /// <summary>Returns reviews submitted by the signed-in customer.</summary>
@@ -86,6 +92,7 @@ public class ServiceReviewController : ControllerBase
 
         var rows = await _db.ServiceReviews.AsNoTracking()
             .Include(s => s.Customer)
+            .Include(s => s.Appointment)
             .Where(s => s.CustomerId == resolved.CustomerId)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
@@ -103,6 +110,7 @@ public class ServiceReviewController : ControllerBase
     {
         var rows = await _db.ServiceReviews.AsNoTracking()
             .Include(s => s.Customer)
+            .Include(s => s.Appointment)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
 
@@ -151,6 +159,8 @@ public class ServiceReviewController : ControllerBase
             CustomerId = s.CustomerId,
             CustomerName = s.Customer?.FullName,
             AppointmentId = s.AppointmentId,
+            AppointmentDate = s.Appointment?.AppointmentDate,
+            ServiceType = s.Appointment?.ServiceType,
             Rating = s.Rating,
             Comment = s.Comment,
             CreatedAt = s.CreatedAt,
