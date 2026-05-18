@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerProfile.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -12,12 +10,9 @@ function getErrorMessage(error, fallback) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
+  if (!value) return '\u2014'
   try {
-    return new Date(value).toLocaleString(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    })
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   } catch {
     return String(value)
   }
@@ -25,9 +20,6 @@ function formatDateTime(value) {
 
 const STAR_VALUES = [1, 2, 3, 4, 5]
 
-/**
- * Customer service reviews: star rating and optional comment.
- */
 function ServiceReviews() {
   const [items, setItems] = useState([])
   const [rating, setRating] = useState(5)
@@ -69,7 +61,7 @@ function ServiceReviews() {
         rating,
         comment: comment.trim() || null,
       })
-      setSuccess('Thank you — your review was submitted.')
+      setSuccess('Thank you \u2014 your review was submitted.')
       setComment('')
       setRating(5)
       await load()
@@ -81,67 +73,97 @@ function ServiceReviews() {
   }
 
   return (
-    <section className="customer-profile-page">
-      <Link to="/customer" className="customer-profile-back">
-        ← Customer portal
-      </Link>
-      <h1>Service reviews</h1>
-      <p className="customer-profile-lead">Rate your experience and leave feedback for our team.</p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Service reviews</h1>
+          <p className="page-subtitle">Rate your experience and leave feedback for our team.</p>
+        </div>
+      </div>
 
-      {error ? <div className="customer-profile-error">{error}</div> : null}
-      {success ? <div className="customer-profile-success">{success}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
-      <div className="customer-profile-card">
-        <h2>Submit a review</h2>
-        <form className="customer-profile-form" onSubmit={handleSubmit}>
-          <div>
-            <span className="customer-profile-muted" style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 600, color: '#374151' }}>
-              Rating (1–5)
-            </span>
-            <div className="customer-feature-stars" role="group" aria-label="Rating 1 to 5 stars">
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Submit a review</div>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Rating</label>
+            <div className="star-row" role="group" aria-label="Rating 1 to 5 stars">
               {STAR_VALUES.map((n) => (
                 <button
                   key={n}
                   type="button"
-                  className={`customer-feature-star${rating === n ? ' active' : ''}`}
+                  className={`star-btn${rating >= n ? ' active' : ''}`}
                   aria-pressed={rating === n}
                   aria-label={`${n} star${n === 1 ? '' : 's'}`}
                   onClick={() => setRating(n)}
                 >
-                  ★
+                  {'\u2605'}
                 </button>
               ))}
+              <span className="muted" style={{ marginLeft: 8 }}>{rating} / 5</span>
             </div>
           </div>
-          <label>
-            Comment (optional)
-            <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={4} placeholder="What went well or what we could improve" />
-          </label>
-          <button type="submit" className="customer-profile-primary" disabled={submitting}>
-            {submitting ? 'Submitting…' : 'Submit review'}
-          </button>
+
+          <div className="form-group mt-4">
+            <label className="form-label" htmlFor="comment">Comment (optional)</label>
+            <textarea
+              id="comment"
+              className="form-textarea"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={4}
+              placeholder="What went well or what we could improve"
+            />
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Submitting&hellip;
+                </>
+              ) : (
+                'Submit review'
+              )}
+            </button>
+          </div>
         </form>
       </div>
 
-      <div className="customer-profile-card">
-        <h2>Your reviews</h2>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Your reviews</div>
+          <span className="muted">{items.length} total</span>
+        </div>
         {loading ? (
-          <p className="customer-profile-muted">Loading…</p>
+          <div className="loading-state">
+            <span className="spinner" aria-hidden="true" /> Loading&hellip;
+          </div>
         ) : items.length === 0 ? (
-          <p className="customer-profile-muted">You have not submitted any reviews yet.</p>
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u2B50'}</div>
+            <div className="empty-state-title">No reviews yet</div>
+            <div className="empty-state-desc">Submit your first review above.</div>
+          </div>
         ) : (
-          <ul className="customer-feature-list">
+          <ul className="notification-list">
             {items.map((row) => {
               const r = Math.min(5, Math.max(0, Number(row.rating) || 0))
               return (
-              <li key={row.id} className="customer-feature-list-item">
-                <div>
-                  <strong>{'★'.repeat(r)}{'☆'.repeat(5 - r)}</strong>
-                  <span className="customer-feature-meta"> ({r}/5)</span>
-                  <div className="customer-feature-status">{formatDateTime(row.createdAt)}</div>
-                  {row.comment ? <p className="customer-profile-muted">{row.comment}</p> : null}
-                </div>
-              </li>
+                <li key={row.id} className="notification-item">
+                  <div className="notification-header">
+                    <span className="star-display" aria-label={`${r} of 5 stars`}>
+                      {'\u2605'.repeat(r)}
+                      <span style={{ color: '#d1d5db' }}>{'\u2605'.repeat(5 - r)}</span>
+                    </span>
+                    <span className="notification-meta">{formatDateTime(row.createdAt)}</span>
+                  </div>
+                  {row.comment ? <p className="notification-message">{row.comment}</p> : null}
+                </li>
               )
             })}
           </ul>

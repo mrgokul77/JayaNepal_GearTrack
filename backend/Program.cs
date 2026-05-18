@@ -60,10 +60,19 @@ builder.Services.AddScoped<IPurchaseInvoiceService, PurchaseInvoiceService>();
 builder.Services.AddScoped<ISalesInvoiceRepository, SalesInvoiceRepository>();
 builder.Services.AddScoped<ISalesInvoiceService, SalesInvoiceService>();
 
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection(EmailSettings.SectionName));
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHostedService<NotificationSchedulerService>();
 
 var app = builder.Build();
+
+var emailSettings = EmailSettings.FromConfiguration(app.Configuration);
+app.Logger.LogInformation(
+    "EmailSettings: SmtpHost={Host}, SmtpPort={Port}, SenderEmail={Sender}, IsConfigured={Configured}",
+    string.IsNullOrWhiteSpace(emailSettings.SmtpHost) ? "(empty)" : emailSettings.SmtpHost,
+    emailSettings.SmtpPort,
+    string.IsNullOrWhiteSpace(emailSettings.SenderEmail) ? "(empty)" : emailSettings.SenderEmail,
+    emailSettings.IsConfigured);
 
 if (app.Environment.IsDevelopment())
 {

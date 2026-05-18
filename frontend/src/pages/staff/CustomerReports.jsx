@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerReports.css'
 
-/** Pull a readable message from an Axios/API error response. */
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
   if (typeof data === 'string') return data
@@ -12,17 +9,23 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
+const money = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+})
+
 function formatMoney(value) {
   const n = Number(value)
-  if (Number.isNaN(n)) return '0.00'
-  return n.toFixed(2)
+  if (Number.isNaN(n)) return money.format(0)
+  return money.format(n)
 }
 
 function formatDate(value) {
-  if (!value) return '—'
+  if (!value) return '\u2014'
   const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString()
+  if (Number.isNaN(d.getTime())) return '\u2014'
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 const TABS = [
@@ -39,38 +42,41 @@ function CustomerReports() {
   const [errorByTab, setErrorByTab] = useState({})
   const [loadingByTab, setLoadingByTab] = useState({})
 
-  const loadTab = useCallback(async (tabId, force = false) => {
-    if (!force) {
-      if (tabId === 'regular' && regularRows !== null) return
-      if (tabId === 'high' && highRows !== null) return
-      if (tabId === 'pending' && pendingRows !== null) return
-    }
+  const loadTab = useCallback(
+    async (tabId, force = false) => {
+      if (!force) {
+        if (tabId === 'regular' && regularRows !== null) return
+        if (tabId === 'high' && highRows !== null) return
+        if (tabId === 'pending' && pendingRows !== null) return
+      }
 
-    setLoadingByTab((prev) => ({ ...prev, [tabId]: true }))
-    setErrorByTab((prev) => ({ ...prev, [tabId]: '' }))
+      setLoadingByTab((prev) => ({ ...prev, [tabId]: true }))
+      setErrorByTab((prev) => ({ ...prev, [tabId]: '' }))
 
-    const path =
-      tabId === 'regular'
-        ? '/customer-reports/regular-customers'
-        : tabId === 'high'
-          ? '/customer-reports/high-spenders'
-          : '/customer-reports/pending-credits'
+      const path =
+        tabId === 'regular'
+          ? '/customer-reports/regular-customers'
+          : tabId === 'high'
+            ? '/customer-reports/high-spenders'
+            : '/customer-reports/pending-credits'
 
-    try {
-      const { data } = await api.get(path)
-      if (tabId === 'regular') setRegularRows(Array.isArray(data) ? data : [])
-      if (tabId === 'high') setHighRows(Array.isArray(data) ? data : [])
-      if (tabId === 'pending') setPendingRows(Array.isArray(data) ? data : [])
-    } catch (requestError) {
-      const msg = getErrorMessage(requestError, 'Could not load this report.')
-      setErrorByTab((prev) => ({ ...prev, [tabId]: msg }))
-      if (tabId === 'regular') setRegularRows([])
-      if (tabId === 'high') setHighRows([])
-      if (tabId === 'pending') setPendingRows([])
-    } finally {
-      setLoadingByTab((prev) => ({ ...prev, [tabId]: false }))
-    }
-  }, [regularRows, highRows, pendingRows])
+      try {
+        const { data } = await api.get(path)
+        if (tabId === 'regular') setRegularRows(Array.isArray(data) ? data : [])
+        if (tabId === 'high') setHighRows(Array.isArray(data) ? data : [])
+        if (tabId === 'pending') setPendingRows(Array.isArray(data) ? data : [])
+      } catch (requestError) {
+        const msg = getErrorMessage(requestError, 'Could not load this report.')
+        setErrorByTab((prev) => ({ ...prev, [tabId]: msg }))
+        if (tabId === 'regular') setRegularRows([])
+        if (tabId === 'high') setHighRows([])
+        if (tabId === 'pending') setPendingRows([])
+      } finally {
+        setLoadingByTab((prev) => ({ ...prev, [tabId]: false }))
+      }
+    },
+    [regularRows, highRows, pendingRows],
+  )
 
   useEffect(() => {
     void loadTab(activeTab)
@@ -84,32 +90,43 @@ function CustomerReports() {
   const loading = loadingByTab[activeTab]
 
   return (
-    <section className="customer-reports-page">
-      <Link to="/staff" className="customer-reports-back">
-        ← Staff workspace
-      </Link>
-      <h1>Customer reports</h1>
-      <p className="customer-reports-lead">
-        View regular buyers, top spenders, and invoices flagged for credit follow-up. Data loads when you open each tab.
-      </p>
-
-      <div className="customer-reports-toolbar">
-        <button type="button" className="primary" onClick={() => void loadTab(activeTab, true)}>
-          Refresh current tab
-        </button>
-        <button type="button" onClick={handlePrint}>
-          Print / save as PDF
-        </button>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Customer reports</h1>
+          <p className="page-subtitle">
+            Regular buyers, top spenders, and pending credit follow-ups. Each tab loads on demand.
+          </p>
+        </div>
+        <div className="page-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => void loadTab(activeTab, true)}
+            disabled={!!loading}
+          >
+            {loading ? (
+              <>
+                <span className="spinner" aria-hidden="true" /> Refreshing&hellip;
+              </>
+            ) : (
+              'Refresh'
+            )}
+          </button>
+          <button type="button" className="btn btn-primary" onClick={handlePrint}>
+            <span aria-hidden="true">{'\u{1F5A8}'}</span> Print / Export
+          </button>
+        </div>
       </div>
 
-      <div className="customer-reports-tabs" role="tablist" aria-label="Report type">
+      <div className="tabs" role="tablist" aria-label="Report type">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
-            className={activeTab === tab.id ? 'active' : ''}
+            className={`tab${activeTab === tab.id ? ' active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
@@ -117,102 +134,129 @@ function CustomerReports() {
         ))}
       </div>
 
-      {err ? <div className="customer-reports-error">{err}</div> : null}
-      {loading ? <div className="customer-reports-loading">Loading…</div> : null}
+      {err ? <div className="alert alert-error">{err}</div> : null}
+
+      {loading ? (
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading report&hellip;
+        </div>
+      ) : null}
 
       {!loading && activeTab === 'regular' ? (
-        <div className="customer-reports-table-wrap">
+        <div className="card" style={{ padding: 0 }}>
           {!regularRows?.length && !err ? (
-            <p className="customer-reports-empty">No customers with more than two purchases yet.</p>
+            <div className="empty-state">
+              <div className="empty-state-icon" aria-hidden="true">{'\u{1F465}'}</div>
+              <div className="empty-state-title">No regular customers yet</div>
+              <div className="empty-state-desc">Customers appear here after more than two purchases.</div>
+            </div>
           ) : (
-            <table className="customer-reports-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th className="customer-reports-num">Purchases</th>
-                  <th className="customer-reports-num">Total spent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(regularRows ?? []).map((row) => (
-                  <tr key={row.customerId}>
-                    <td>{row.customerId}</td>
-                    <td>{row.fullName}</td>
-                    <td>{row.email}</td>
-                    <td>{row.phone || '—'}</td>
-                    <td className="customer-reports-num">{row.totalPurchases}</td>
-                    <td className="customer-reports-num">{formatMoney(row.totalSpent)}</td>
+            <div className="table-wrap" style={{ border: 'none' }}>
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th className="num">Purchases</th>
+                    <th className="num">Total spent</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(regularRows ?? []).map((row, idx) => (
+                    <tr key={row.customerId}>
+                      <td>{idx + 1}</td>
+                      <td className="muted">#{row.customerId}</td>
+                      <td><strong>{row.fullName}</strong></td>
+                      <td>{row.email}</td>
+                      <td>{row.phone || '\u2014'}</td>
+                      <td className="num">{row.totalPurchases}</td>
+                      <td className="num"><strong>{formatMoney(row.totalSpent)}</strong></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       ) : null}
 
       {!loading && activeTab === 'high' ? (
-        <div className="customer-reports-table-wrap">
+        <div className="card" style={{ padding: 0 }}>
           {!highRows?.length && !err ? (
-            <p className="customer-reports-empty">No sales data to rank high spenders yet.</p>
+            <div className="empty-state">
+              <div className="empty-state-icon" aria-hidden="true">{'\u{1F4B5}'}</div>
+              <div className="empty-state-title">No high spenders yet</div>
+              <div className="empty-state-desc">Top customers by total purchases will be listed here.</div>
+            </div>
           ) : (
-            <table className="customer-reports-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th className="customer-reports-num">Total spent</th>
-                  <th>Last purchase</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(highRows ?? []).map((row) => (
-                  <tr key={row.customerId}>
-                    <td>{row.customerId}</td>
-                    <td>{row.fullName}</td>
-                    <td>{row.email}</td>
-                    <td>{row.phone || '—'}</td>
-                    <td className="customer-reports-num">{formatMoney(row.totalSpent)}</td>
-                    <td>{formatDate(row.lastPurchaseDate)}</td>
+            <div className="table-wrap" style={{ border: 'none' }}>
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th className="num">Total spent</th>
+                    <th>Last purchase</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(highRows ?? []).map((row, idx) => (
+                    <tr key={row.customerId}>
+                      <td>{idx + 1}</td>
+                      <td className="muted">#{row.customerId}</td>
+                      <td><strong>{row.fullName}</strong></td>
+                      <td>{row.email}</td>
+                      <td>{row.phone || '\u2014'}</td>
+                      <td className="num"><strong>{formatMoney(row.totalSpent)}</strong></td>
+                      <td className="muted">{formatDate(row.lastPurchaseDate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       ) : null}
 
       {!loading && activeTab === 'pending' ? (
-        <div className="customer-reports-table-wrap">
+        <div className="card" style={{ padding: 0 }}>
           {!pendingRows?.length && !err ? (
-            <p className="customer-reports-empty">No pending credit rows match the current rules.</p>
+            <div className="empty-state">
+              <div className="empty-state-icon" aria-hidden="true">{'\u2705'}</div>
+              <div className="empty-state-title">All credits are settled</div>
+              <div className="empty-state-desc">Nothing to follow up on right now.</div>
+            </div>
           ) : (
-            <table className="customer-reports-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th className="customer-reports-num">Total unpaid (sum)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(pendingRows ?? []).map((row) => (
-                  <tr key={row.customerId}>
-                    <td>{row.customerId}</td>
-                    <td>{row.fullName}</td>
-                    <td>{row.email}</td>
-                    <td>{row.phone || '—'}</td>
-                    <td className="customer-reports-num">{formatMoney(row.totalUnpaid)}</td>
+            <div className="table-wrap" style={{ border: 'none' }}>
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th className="num">Total unpaid</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(pendingRows ?? []).map((row) => (
+                    <tr key={row.customerId}>
+                      <td className="muted">#{row.customerId}</td>
+                      <td><strong>{row.fullName}</strong></td>
+                      <td>{row.email}</td>
+                      <td>{row.phone || '\u2014'}</td>
+                      <td className="num text-danger"><strong>{formatMoney(row.totalUnpaid)}</strong></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       ) : null}

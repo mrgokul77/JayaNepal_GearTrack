@@ -1,7 +1,5 @@
 import { Fragment, useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './CustomerHistory.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -11,10 +9,35 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
+const money = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+})
+
 function formatMoney(value) {
   const n = Number(value)
-  if (Number.isNaN(n)) return '0.00'
-  return n.toFixed(2)
+  if (Number.isNaN(n)) return money.format(0)
+  return money.format(n)
+}
+
+function formatDateTime(value) {
+  if (!value) return '\u2014'
+  try {
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  } catch {
+    return String(value)
+  }
+}
+
+function initials(name) {
+  if (!name) return '?'
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('') || '?'
 }
 
 function CustomerHistory() {
@@ -62,63 +85,75 @@ function CustomerHistory() {
   }
 
   return (
-    <section className="customer-history-page">
-      <Link to="/staff" className="customer-history-back">
-        ← Staff workspace
-      </Link>
-      <h1>Customer history</h1>
-      <p className="customer-history-lead">
-        Enter a customer ID to view their profile, registered vehicles, and past sales (purchase history).
-      </p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Customer history</h1>
+          <p className="page-subtitle">
+            Enter a customer ID to view their profile, registered vehicles, and past sales.
+          </p>
+        </div>
+      </div>
 
-      <form className="customer-history-toolbar" onSubmit={handleSubmit} noValidate>
-        <label htmlFor="customer-id">
-          Customer ID
-          <input
-            id="customer-id"
-            name="customerId"
-            type="number"
-            min={1}
-            step={1}
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="e.g. 1"
-            value={customerIdInput}
-            onChange={(e) => setCustomerIdInput(e.target.value)}
-          />
-        </label>
-        <button type="submit" disabled={loading}>
-          {loading ? 'Loading…' : 'Load'}
+      <form className="search-toolbar" onSubmit={handleSubmit} noValidate>
+        <span style={{ paddingLeft: 8, color: 'var(--color-text-soft)' }} aria-hidden="true">{'\u{1F50D}'}</span>
+        <input
+          id="customer-id"
+          name="customerId"
+          type="number"
+          min={1}
+          step={1}
+          inputMode="numeric"
+          autoComplete="off"
+          className="form-input"
+          placeholder="Customer ID (e.g. 1)"
+          value={customerIdInput}
+          onChange={(e) => setCustomerIdInput(e.target.value)}
+        />
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? (
+            <>
+              <span className="spinner" aria-hidden="true" /> Loading&hellip;
+            </>
+          ) : (
+            'Load'
+          )}
         </button>
       </form>
 
-      {error ? <div className="customer-history-error">{error}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
 
       {detail ? (
         <>
-          <article className="customer-history-card">
-            <h2>Customer profile</h2>
-            <dl className="customer-history-grid">
-              <dt>ID</dt>
-              <dd>{detail.id}</dd>
-              <dt>Full name</dt>
-              <dd>{detail.fullName}</dd>
-              <dt>Email</dt>
-              <dd>{detail.email}</dd>
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">Profile</div>
+            </div>
+            <div className="flex gap-3" style={{ alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+              <div className="avatar avatar-lg" aria-hidden="true">{initials(detail.fullName)}</div>
+              <div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700 }}>{detail.fullName}</div>
+                <div className="muted">{detail.email}</div>
+                <div className="muted" style={{ fontSize: '0.8125rem' }}>Customer #{detail.id}</div>
+              </div>
+            </div>
+            <dl className="dl-grid">
               <dt>Phone</dt>
-              <dd>{detail.phone || '—'}</dd>
+              <dd>{detail.phone || '\u2014'}</dd>
               <dt>Address</dt>
-              <dd>{detail.address || '—'}</dd>
+              <dd>{detail.address || '\u2014'}</dd>
               <dt>Member since</dt>
-              <dd>{detail.createdAt ? new Date(detail.createdAt).toLocaleString() : '—'}</dd>
+              <dd>{formatDateTime(detail.createdAt)}</dd>
             </dl>
-          </article>
+          </div>
 
-          <div className="customer-history-section">
-            <h2>Vehicles</h2>
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">Vehicles</div>
+            </div>
             {detail.vehicles?.length ? (
-              <div className="customer-history-table-wrap">
-                <table className="customer-history-table">
+              <div className="table-wrap">
+                <table className="table table-striped">
                   <thead>
                     <tr>
                       <th>Number</th>
@@ -130,7 +165,7 @@ function CustomerHistory() {
                   <tbody>
                     {detail.vehicles.map((v) => (
                       <tr key={v.id}>
-                        <td>{v.vehicleNumber}</td>
+                        <td><strong>{v.vehicleNumber}</strong></td>
                         <td>{v.brand}</td>
                         <td>{v.model}</td>
                         <td>{v.year}</td>
@@ -140,31 +175,34 @@ function CustomerHistory() {
                 </table>
               </div>
             ) : (
-              <p className="customer-history-empty">No vehicles on file.</p>
+              <p className="muted">No vehicles on file.</p>
             )}
           </div>
 
-          <div className="customer-history-section">
-            <h2>Purchase history</h2>
-            <p className="customer-history-lead" style={{ marginTop: '-0.35rem', marginBottom: '0.75rem' }}>
-              Click a row to show or hide line items for that invoice.
-            </p>
+          <div className="card">
+            <div className="card-header">
+              <div>
+                <div className="card-title">Purchase history</div>
+                <div className="card-subtitle">Click a row to expand line items.</div>
+              </div>
+            </div>
             {detail.purchaseHistory?.length ? (
-              <div className="customer-history-table-wrap">
-                <table className="customer-history-table">
+              <div className="table-wrap">
+                <table className="table table-striped">
                   <thead>
                     <tr>
                       <th>Invoice</th>
                       <th>Date</th>
-                      <th className="customer-history-num">Total</th>
-                      <th className="customer-history-num">Discount</th>
+                      <th className="num">Total</th>
+                      <th className="num">Discount</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
                     {detail.purchaseHistory.map((inv) => (
                       <Fragment key={inv.id}>
                         <tr
-                          className={`customer-history-invoice-row${expandedInvoiceId === inv.id ? ' is-expanded' : ''}`}
+                          className="row-expandable"
                           onClick={() => toggleInvoice(inv.id)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -176,41 +214,46 @@ function CustomerHistory() {
                           role="button"
                           aria-expanded={expandedInvoiceId === inv.id}
                         >
-                          <td>#{inv.id}</td>
-                          <td>{inv.saleDate ? new Date(inv.saleDate).toLocaleString() : '—'}</td>
-                          <td className="customer-history-num">{formatMoney(inv.totalAmount)}</td>
-                          <td className="customer-history-num">{formatMoney(inv.discountApplied)}</td>
+                          <td><strong>#{inv.id}</strong></td>
+                          <td className="muted">{formatDateTime(inv.saleDate)}</td>
+                          <td className="num">{formatMoney(inv.totalAmount)}</td>
+                          <td className="num">
+                            {Number(inv.discountApplied) > 0 ? (
+                              <span className="badge badge-success">{formatMoney(inv.discountApplied)}</span>
+                            ) : (
+                              <span className="muted">{'\u2014'}</span>
+                            )}
+                          </td>
+                          <td className="text-right muted">{expandedInvoiceId === inv.id ? 'Hide' : 'View items'}</td>
                         </tr>
                         {expandedInvoiceId === inv.id ? (
-                          <tr className="customer-history-items-row">
-                            <td colSpan={4}>
-                              <div className="customer-history-items-inner">
-                                <h3>Line items</h3>
+                          <tr className="row-detail">
+                            <td colSpan={5}>
+                              <div>
+                                <h3 style={{ fontSize: '0.875rem', marginBottom: 'var(--space-2)' }}>Line items</h3>
                                 {inv.items?.length ? (
-                                  <table className="customer-history-items-table">
+                                  <table className="line-table">
                                     <thead>
                                       <tr>
                                         <th>Part</th>
-                                        <th className="customer-history-num">Qty</th>
-                                        <th className="customer-history-num">Unit price</th>
-                                        <th className="customer-history-num">Subtotal</th>
+                                        <th className="num">Qty</th>
+                                        <th className="num">Unit price</th>
+                                        <th className="num">Subtotal</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {inv.items.map((line, idx) => (
                                         <tr key={`${inv.id}-line-${idx}`}>
                                           <td>{line.partName}</td>
-                                          <td className="customer-history-num">{line.quantity}</td>
-                                          <td className="customer-history-num">{formatMoney(line.unitPrice)}</td>
-                                          <td className="customer-history-num">{formatMoney(line.subTotal)}</td>
+                                          <td className="num">{line.quantity}</td>
+                                          <td className="num">{formatMoney(line.unitPrice)}</td>
+                                          <td className="num"><strong>{formatMoney(line.subTotal)}</strong></td>
                                         </tr>
                                       ))}
                                     </tbody>
                                   </table>
                                 ) : (
-                                  <p className="customer-history-empty" style={{ padding: 0 }}>
-                                    No line items.
-                                  </p>
+                                  <p className="muted">No line items.</p>
                                 )}
                               </div>
                             </td>
@@ -222,7 +265,7 @@ function CustomerHistory() {
                 </table>
               </div>
             ) : (
-              <p className="customer-history-empty">No sales on record for this customer.</p>
+              <p className="muted">No sales on record for this customer.</p>
             )}
           </div>
         </>

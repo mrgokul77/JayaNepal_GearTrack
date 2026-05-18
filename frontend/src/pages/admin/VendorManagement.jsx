@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import api from '../../services/api'
-import './VendorManagement.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -11,11 +9,15 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
-const emptyForm = {
-  name: '',
-  phone: '',
-  email: '',
-  address: '',
+const emptyForm = { name: '', phone: '', email: '', address: '' }
+
+function formatDate(iso) {
+  if (!iso) return '\u2014'
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+  } catch {
+    return String(iso)
+  }
 }
 
 function VendorManagement() {
@@ -23,11 +25,10 @@ function VendorManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [createForm, setCreateForm] = useState(emptyForm)
-  const [creating, setCreating] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState(emptyForm)
-  const [savingEdit, setSavingEdit] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const [modal, setModal] = useState({ open: false, mode: 'create', id: null, form: emptyForm })
+  const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
 
   const loadVendors = useCallback(async () => {
@@ -45,87 +46,86 @@ function VendorManagement() {
   }, [])
 
   useEffect(() => {
-    loadVendors()
+    void loadVendors()
   }, [loadVendors])
 
-  const handleCreateChange = (event) => {
-    const { name, value } = event.target
-    setCreateForm((previous) => ({ ...previous, [name]: value }))
-  }
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return vendors
+    return vendors.filter(
+      (v) =>
+        (v.name && v.name.toLowerCase().includes(q)) ||
+        (v.email && v.email.toLowerCase().includes(q)) ||
+        (v.phone && String(v.phone).includes(q)) ||
+        (v.address && v.address.toLowerCase().includes(q)),
+    )
+  }, [vendors, search])
 
-  const handleCreateSubmit = async (event) => {
-    event.preventDefault()
+  const openCreate = () => {
     setError('')
     setSuccess('')
-    setCreating(true)
-    try {
-      await api.post('/vendors', {
-        name: createForm.name.trim(),
-        phone: createForm.phone.trim(),
-        email: createForm.email.trim(),
-        address: createForm.address.trim(),
-      })
-      setSuccess('Vendor created successfully.')
-      setCreateForm(emptyForm)
-      await loadVendors()
-    } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Could not create vendor.'))
-    } finally {
-      setCreating(false)
-    }
+    setModal({ open: true, mode: 'create', id: null, form: emptyForm })
   }
 
   const openEdit = (vendor) => {
     setError('')
     setSuccess('')
-    setEditingId(vendor.id)
-    setEditForm({
-      name: vendor.name ?? '',
-      phone: vendor.phone ?? '',
-      email: vendor.email ?? '',
-      address: vendor.address ?? '',
+    setModal({
+      open: true,
+      mode: 'edit',
+      id: vendor.id,
+      form: {
+        name: vendor.name ?? '',
+        phone: vendor.phone ?? '',
+        email: vendor.email ?? '',
+        address: vendor.address ?? '',
+      },
     })
   }
 
-  const closeEdit = () => {
-    setEditingId(null)
-    setEditForm(emptyForm)
+  const closeModal = () => {
+    if (saving) return
+    setModal({ open: false, mode: 'create', id: null, form: emptyForm })
   }
 
-  const handleEditChange = (event) => {
+  const handleChange = (event) => {
     const { name, value } = event.target
-    setEditForm((previous) => ({ ...previous, [name]: value }))
+    setModal((prev) => ({ ...prev, form: { ...prev.form, [name]: value } }))
   }
 
-  const handleEditSubmit = async (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    if (editingId == null) return
     setError('')
     setSuccess('')
-    setSavingEdit(true)
+    setSaving(true)
+    const payload = {
+      name: modal.form.name.trim(),
+      phone: modal.form.phone.trim(),
+      email: modal.form.email.trim(),
+      address: modal.form.address.trim(),
+    }
     try {
-      await api.put(`/vendors/${editingId}`, {
-        name: editForm.name.trim(),
-        phone: editForm.phone.trim(),
-        email: editForm.email.trim(),
-        address: editForm.address.trim(),
-      })
-      setSuccess('Vendor updated successfully.')
-      closeEdit()
+      if (modal.mode === 'edit' && modal.id != null) {
+        await api.put(`/vendors/${modal.id}`, payload)
+        setSuccess('Vendor updated successfully.')
+      } else {
+        await api.post('/vendors', payload)
+        setSuccess('Vendor created successfully.')
+      }
+      setModal({ open: false, mode: 'create', id: null, form: emptyForm })
       await loadVendors()
     } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Could not update vendor.'))
+      setError(getErrorMessage(requestError, 'Could not save vendor.'))
     } finally {
-      setSavingEdit(false)
+      setSaving(false)
     }
   }
 
   const handleDelete = async (vendor) => {
-    const confirmed = window.confirm(
-      `Delete vendor "${vendor.name}"? This only works if no parts or purchase invoices reference them.`,
+    const ok = window.confirm(
+      `Delete vendor "${vendor.name}"? This only works if no parts or invoices reference them.`,
     )
-    if (!confirmed) return
-
+    if (!ok) return
     setError('')
     setSuccess('')
     setDeletingId(vendor.id)
@@ -136,12 +136,7 @@ function VendorManagement() {
     } catch (requestError) {
       const status = requestError.response?.status
       if (status === 409) {
-        setError(
-          getErrorMessage(
-            requestError,
-            'This vendor is still linked to inventory or invoices and cannot be deleted.',
-          ),
-        )
+        setError(getErrorMessage(requestError, 'Vendor is still linked to inventory or invoices.'))
       } else {
         setError(getErrorMessage(requestError, 'Could not delete vendor.'))
       }
@@ -150,107 +145,52 @@ function VendorManagement() {
     }
   }
 
-  const formatDate = (iso) => {
-    if (!iso) return '—'
-    try {
-      return new Date(iso).toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
-    } catch {
-      return String(iso)
-    }
-  }
-
   return (
-    <div className="vendor-management">
-      <header className="vendor-management-header">
+    <section>
+      <div className="page-header">
         <div>
-          <h1>Vendors</h1>
-          <p className="vendor-management-lead">Manage supplier contact details and records.</p>
+          <h1 className="page-title">Vendors</h1>
+          <p className="page-subtitle">Manage supplier records and contact details.</p>
         </div>
-        <Link to="/admin" className="vendor-management-back">
-          ← Admin dashboard
-        </Link>
-      </header>
-
-      {error ? (
-        <div className="vendor-banner vendor-banner-error" role="alert">
-          {error}
+        <div className="page-actions">
+          <button type="button" className="btn btn-primary" onClick={openCreate}>
+            <span aria-hidden="true">{'\u2795'}</span> Add vendor
+          </button>
         </div>
-      ) : null}
-      {success ? (
-        <div className="vendor-banner vendor-banner-success" role="status">
-          {success}
-        </div>
-      ) : null}
+      </div>
 
-      <section className="vendor-card">
-        <h2>Add vendor</h2>
-        <form className="vendor-form" onSubmit={handleCreateSubmit}>
-          <div className="vendor-form-grid">
-            <label className="vendor-field">
-              <span>Name</span>
-              <input
-                name="name"
-                value={createForm.name}
-                onChange={handleCreateChange}
-                required
-                maxLength={150}
-                autoComplete="organization"
-              />
-            </label>
-            <label className="vendor-field">
-              <span>Phone</span>
-              <input
-                name="phone"
-                value={createForm.phone}
-                onChange={handleCreateChange}
-                required
-                maxLength={30}
-                autoComplete="tel"
-              />
-            </label>
-            <label className="vendor-field">
-              <span>Email</span>
-              <input
-                name="email"
-                type="email"
-                value={createForm.email}
-                onChange={handleCreateChange}
-                required
-                maxLength={150}
-                autoComplete="email"
-              />
-            </label>
-            <label className="vendor-field vendor-field-full">
-              <span>Address</span>
-              <input
-                name="address"
-                value={createForm.address}
-                onChange={handleCreateChange}
-                maxLength={300}
-                autoComplete="street-address"
-              />
-            </label>
-          </div>
-          <div className="vendor-form-actions">
-            <button type="submit" className="vendor-btn vendor-btn-primary" disabled={creating}>
-              {creating ? 'Saving…' : 'Create vendor'}
-            </button>
-          </div>
-        </form>
-      </section>
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
-      <section className="vendor-card">
-        <h2>All vendors</h2>
+      <div className="search-toolbar">
+        <span style={{ paddingLeft: 8, color: 'var(--color-text-soft)' }} aria-hidden="true">{'\u{1F50D}'}</span>
+        <input
+          type="search"
+          className="form-input"
+          placeholder="Search vendors by name, phone, email, or address"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
         {loading ? (
-          <p className="vendor-muted">Loading…</p>
-        ) : vendors.length === 0 ? (
-          <p className="vendor-muted">No vendors yet. Add one above.</p>
+          <div className="loading-state">
+            <span className="spinner" aria-hidden="true" /> Loading vendors&hellip;
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u{1F3E2}'}</div>
+            <div className="empty-state-title">{vendors.length === 0 ? 'No vendors yet' : 'No matches'}</div>
+            <div className="empty-state-desc">
+              {vendors.length === 0
+                ? 'Click \u201CAdd vendor\u201D to register your first supplier.'
+                : 'Try a different search term.'}
+            </div>
+          </div>
         ) : (
-          <div className="vendor-table-wrap">
-            <table className="vendor-table">
+          <div className="table-wrap" style={{ border: 'none' }}>
+            <table className="table table-striped table-hover">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -258,29 +198,31 @@ function VendorManagement() {
                   <th>Email</th>
                   <th>Address</th>
                   <th>Created</th>
-                  <th className="vendor-th-actions">Actions</th>
+                  <th className="num">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {vendors.map((v) => (
+                {filtered.map((v) => (
                   <tr key={v.id}>
-                    <td>{v.name}</td>
-                    <td>{v.phone}</td>
-                    <td>{v.email}</td>
-                    <td className="vendor-td-address">{v.address || '—'}</td>
-                    <td className="vendor-td-muted">{formatDate(v.createdAt)}</td>
-                    <td className="vendor-td-actions">
-                      <button type="button" className="vendor-btn vendor-btn-ghost" onClick={() => openEdit(v)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="vendor-btn vendor-btn-danger"
-                        disabled={deletingId === v.id}
-                        onClick={() => handleDelete(v)}
-                      >
-                        {deletingId === v.id ? '…' : 'Delete'}
-                      </button>
+                    <td><strong>{v.name}</strong></td>
+                    <td>{v.phone || '\u2014'}</td>
+                    <td>{v.email || '\u2014'}</td>
+                    <td className="muted">{v.address || '\u2014'}</td>
+                    <td className="muted">{formatDate(v.createdAt)}</td>
+                    <td>
+                      <div className="actions">
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEdit(v)}>
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          disabled={deletingId === v.id}
+                          onClick={() => handleDelete(v)}
+                        >
+                          {deletingId === v.id ? '\u2026' : 'Delete'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -288,68 +230,95 @@ function VendorManagement() {
             </table>
           </div>
         )}
-      </section>
+      </div>
 
-      {editingId != null ? (
-        <div className="vendor-modal-overlay" role="presentation" onClick={closeEdit}>
+      {modal.open ? (
+        <div className="modal-overlay" role="presentation" onClick={closeModal}>
           <div
-            className="vendor-modal"
+            className="modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="vendor-edit-title"
+            aria-labelledby="vendor-modal-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="vendor-modal-header">
-              <h2 id="vendor-edit-title">Edit vendor</h2>
-              <button type="button" className="vendor-modal-close" onClick={closeEdit} aria-label="Close">
-                ×
+            <div className="modal-header">
+              <h2 className="modal-title" id="vendor-modal-title">
+                {modal.mode === 'edit' ? 'Edit vendor' : 'Add vendor'}
+              </h2>
+              <button type="button" className="modal-close" onClick={closeModal} aria-label="Close">
+                {'\u00D7'}
               </button>
             </div>
-            <form className="vendor-form" onSubmit={handleEditSubmit}>
-              <div className="vendor-form-grid">
-                <label className="vendor-field">
-                  <span>Name</span>
-                  <input
-                    name="name"
-                    value={editForm.name}
-                    onChange={handleEditChange}
-                    required
-                    maxLength={150}
-                  />
-                </label>
-                <label className="vendor-field">
-                  <span>Phone</span>
-                  <input name="phone" value={editForm.phone} onChange={handleEditChange} required maxLength={30} />
-                </label>
-                <label className="vendor-field">
-                  <span>Email</span>
-                  <input
-                    name="email"
-                    type="email"
-                    value={editForm.email}
-                    onChange={handleEditChange}
-                    required
-                    maxLength={150}
-                  />
-                </label>
-                <label className="vendor-field vendor-field-full">
-                  <span>Address</span>
-                  <input name="address" value={editForm.address} onChange={handleEditChange} maxLength={300} />
-                </label>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="vname">Name</label>
+                    <input
+                      id="vname"
+                      name="name"
+                      className="form-input"
+                      value={modal.form.name}
+                      onChange={handleChange}
+                      required
+                      maxLength={150}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="vphone">Phone</label>
+                    <input
+                      id="vphone"
+                      name="phone"
+                      className="form-input"
+                      value={modal.form.phone}
+                      onChange={handleChange}
+                      required
+                      maxLength={30}
+                    />
+                  </div>
+                  <div className="form-group form-grid-full">
+                    <label className="form-label" htmlFor="vemail">Email</label>
+                    <input
+                      id="vemail"
+                      name="email"
+                      type="email"
+                      className="form-input"
+                      value={modal.form.email}
+                      onChange={handleChange}
+                      required
+                      maxLength={150}
+                    />
+                  </div>
+                  <div className="form-group form-grid-full">
+                    <label className="form-label" htmlFor="vaddress">Address</label>
+                    <input
+                      id="vaddress"
+                      name="address"
+                      className="form-input"
+                      value={modal.form.address}
+                      onChange={handleChange}
+                      maxLength={300}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="vendor-form-actions">
-                <button type="button" className="vendor-btn vendor-btn-ghost" onClick={closeEdit}>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={closeModal} disabled={saving}>
                   Cancel
                 </button>
-                <button type="submit" className="vendor-btn vendor-btn-primary" disabled={savingEdit}>
-                  {savingEdit ? 'Saving…' : 'Save changes'}
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <span className="spinner" aria-hidden="true" /> Saving&hellip;
+                    </>
+                  ) : modal.mode === 'edit' ? 'Save changes' : 'Create vendor'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       ) : null}
-    </div>
+    </section>
   )
 }
 

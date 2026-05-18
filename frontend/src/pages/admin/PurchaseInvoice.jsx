@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './PurchaseInvoice.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -25,6 +23,15 @@ function newLine() {
   }
 }
 
+function formatDateTime(value) {
+  if (!value) return '\u2014'
+  try {
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  } catch {
+    return String(value)
+  }
+}
+
 function PurchaseInvoice() {
   const [vendors, setVendors] = useState([])
   const [parts, setParts] = useState([])
@@ -33,7 +40,7 @@ function PurchaseInvoice() {
   const [lines, setLines] = useState([newLine()])
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [listLoading, setListLoading] = useState(true)
 
   const loadLists = useCallback(async () => {
@@ -42,7 +49,7 @@ function PurchaseInvoice() {
     try {
       const [vRes, pRes, iRes] = await Promise.all([
         api.get('/vendors'),
-        api.get('/VehicleParts'),
+        api.get('/vehicle-parts'),
         api.get('/purchase-invoices'),
       ])
       setVendors(vRes.data ?? [])
@@ -56,7 +63,7 @@ function PurchaseInvoice() {
   }, [])
 
   useEffect(() => {
-    loadLists()
+    void loadLists()
   }, [loadLists])
 
   const partsForVendor = useMemo(() => {
@@ -73,13 +80,8 @@ function PurchaseInvoice() {
     }, 0)
   }, [lines])
 
-  const addLine = () => {
-    setLines((prev) => [...prev, newLine()])
-  }
-
-  const removeLine = (key) => {
-    setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.key !== key)))
-  }
+  const addLine = () => setLines((prev) => [...prev, newLine()])
+  const removeLine = (key) => setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.key !== key)))
 
   const updateLine = (key, field, value) => {
     setLines((prev) =>
@@ -88,9 +90,7 @@ function PurchaseInvoice() {
         const next = { ...line, [field]: value }
         if (field === 'partId') {
           const part = partsForVendor.find((p) => String(p.id) === String(value))
-          if (part) {
-            next.unitPrice = String(part.price)
-          }
+          if (part) next.unitPrice = String(part.price)
         }
         return next
       }),
@@ -111,7 +111,6 @@ function PurchaseInvoice() {
       setError('Please select a vendor.')
       return
     }
-
     const items = lines
       .map((line) => ({
         partId: Number(line.partId),
@@ -119,13 +118,11 @@ function PurchaseInvoice() {
         unitPrice: Number(line.unitPrice),
       }))
       .filter((row) => row.partId > 0 && row.quantity > 0 && !Number.isNaN(row.unitPrice) && row.unitPrice >= 0)
-
     if (items.length === 0) {
       setError('Add at least one line with a part, quantity, and unit price.')
       return
     }
-
-    setLoading(true)
+    setSubmitting(true)
     try {
       await api.post('/purchase-invoices', { vendorId: vid, items })
       setSuccess('Purchase invoice saved and stock quantities were updated.')
@@ -134,35 +131,42 @@ function PurchaseInvoice() {
     } catch (err) {
       setError(getErrorMessage(err, 'Could not create purchase invoice.'))
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   return (
-    <div className="purchase-invoice-page">
-      <h1>Purchase invoices</h1>
-      <p className="purchase-invoice-lead">
-        Record stock received from a vendor. Totals are computed from line quantities and unit prices; catalog stock
-        increases when you submit.
-      </p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Purchase invoices</h1>
+          <p className="page-subtitle">
+            Record stock received from a vendor. Submitting will increase the part stock quantities.
+          </p>
+        </div>
+      </div>
 
-      {success && <div className="purchase-msg-success">{success}</div>}
-      {error && <p className="purchase-msg-error">{error}</p>}
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
-      <section className="purchase-invoice-panel" aria-labelledby="new-invoice-title">
-        <h2 id="new-invoice-title">New purchase invoice</h2>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">New purchase invoice</div>
+          <span className="badge badge-info">Running total: {formatMoney(runningTotal)}</span>
+        </div>
         <form onSubmit={handleSubmit}>
-          <div className="purchase-form-grid two">
-            <div>
-              <label htmlFor="vendor">Vendor</label>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="vendor">Vendor</label>
               <select
                 id="vendor"
+                className="form-select"
                 value={vendorId}
                 onChange={handleVendorChange}
                 disabled={listLoading}
                 required
               >
-                <option value="">Select vendor…</option>
+                <option value="">{listLoading ? 'Loading vendors\u2026' : 'Select vendor\u2026'}</option>
                 {vendors.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
@@ -170,114 +174,141 @@ function PurchaseInvoice() {
                 ))}
               </select>
             </div>
-            <div className="purchase-total">Running total: NPR {formatMoney(runningTotal)}</div>
           </div>
 
-          <div style={{ marginTop: '1rem' }}>
-            <table className="purchase-line-table">
+          <div className="table-wrap mt-4" style={{ border: '1px solid var(--color-border)' }}>
+            <table className="line-table">
               <thead>
                 <tr>
                   <th>Part</th>
-                  <th style={{ width: '110px' }}>Qty</th>
-                  <th style={{ width: '130px' }}>Unit price</th>
-                  <th style={{ width: '72px' }} />
+                  <th className="narrow">Qty</th>
+                  <th>Unit price</th>
+                  <th className="num">Line total</th>
+                  <th className="actions-col" />
                 </tr>
               </thead>
               <tbody>
-                {lines.map((line) => (
-                  <tr key={line.key}>
-                    <td>
-                      <select
-                        value={line.partId}
-                        onChange={(ev) => updateLine(line.key, 'partId', ev.target.value)}
-                        required
-                        disabled={!vendorId}
-                      >
-                        <option value="">{vendorId ? 'Select part…' : 'Select vendor first'}</option>
-                        {partsForVendor.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (stock {p.stockQuantity})
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={line.quantity}
-                        onChange={(ev) => updateLine(line.key, 'quantity', ev.target.value)}
-                        required
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={line.unitPrice}
-                        onChange={(ev) => updateLine(line.key, 'unitPrice', ev.target.value)}
-                        required
-                      />
-                    </td>
-                    <td>
-                      <button type="button" className="btn-ghost" onClick={() => removeLine(line.key)}>
-                        Remove
-                      </button>
-                    </td>
+                {lines.map((line) => {
+                  const qty = Number(line.quantity) || 0
+                  const price = Number(line.unitPrice) || 0
+                  return (
+                    <tr key={line.key}>
+                      <td>
+                        <select
+                          className="form-select"
+                          value={line.partId}
+                          onChange={(ev) => updateLine(line.key, 'partId', ev.target.value)}
+                          required
+                          disabled={!vendorId}
+                        >
+                          <option value="">{vendorId ? 'Select part\u2026' : 'Select vendor first'}</option>
+                          {partsForVendor.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} (stock {p.stockQuantity})
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          className="form-input"
+                          value={line.quantity}
+                          onChange={(ev) => updateLine(line.key, 'quantity', ev.target.value)}
+                          required
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className="form-input"
+                          value={line.unitPrice}
+                          onChange={(ev) => updateLine(line.key, 'unitPrice', ev.target.value)}
+                          required
+                        />
+                      </td>
+                      <td className="num"><strong>{formatMoney(qty * price)}</strong></td>
+                      <td className="actions-col">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => removeLine(line.key)}
+                          disabled={lines.length <= 1}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="form-actions">
+            <button type="button" className="btn btn-secondary" onClick={addLine}>
+              <span aria-hidden="true">{'\u2795'}</span> Add line
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={submitting || listLoading}>
+              {submitting ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Saving&hellip;
+                </>
+              ) : (
+                'Create invoice'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">All purchase invoices</div>
+          <span className="muted">{invoices.length} record(s)</span>
+        </div>
+        {listLoading ? (
+          <div className="loading-state">
+            <span className="spinner" aria-hidden="true" /> Loading&hellip;
+          </div>
+        ) : invoices.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u{1F4E6}'}</div>
+            <div className="empty-state-title">No purchase invoices yet</div>
+            <div className="empty-state-desc">Create one above to start tracking stock intake.</div>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="table table-striped">
+              <thead>
+                <tr>
+                  <th>Invoice</th>
+                  <th>Vendor</th>
+                  <th>Date</th>
+                  <th className="num">Total</th>
+                  <th className="num">Items</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td><strong>#{inv.id}</strong></td>
+                    <td>{inv.vendorName}</td>
+                    <td className="muted">{formatDateTime(inv.purchaseDate)}</td>
+                    <td className="num"><strong>{formatMoney(inv.totalAmount)}</strong></td>
+                    <td className="num">{inv.items?.length ?? 0}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          <div className="purchase-line-actions">
-            <button type="button" className="btn-secondary" onClick={addLine}>
-              Add line
-            </button>
-            <button type="submit" className="btn-primary" disabled={loading || listLoading}>
-              {loading ? 'Saving…' : 'Create invoice'}
-            </button>
-            <Link className="link-muted" to="/admin">
-              Back to admin
-            </Link>
-          </div>
-        </form>
-      </section>
-
-      <section className="purchase-invoice-panel" aria-labelledby="invoice-list-title">
-        <h2 id="invoice-list-title">All purchase invoices</h2>
-        {listLoading ? (
-          <p>Loading…</p>
-        ) : invoices.length === 0 ? (
-          <p>No invoices yet.</p>
-        ) : (
-          <ul className="purchase-invoice-list">
-            {invoices.map((inv) => (
-              <li key={inv.id}>
-                <strong>
-                  #{inv.id} — {inv.vendorName}
-                </strong>
-                <span> — NPR {formatMoney(inv.totalAmount)}</span>
-                <div className="meta">
-                  {new Date(inv.purchaseDate).toLocaleString()} · Admin id {inv.adminId}
-                </div>
-                {inv.items?.length > 0 && (
-                  <ul className="lines">
-                    {inv.items.map((it) => (
-                      <li key={it.id}>
-                        {it.partName} × {it.quantity} @ {formatMoney(it.unitPrice)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
         )}
-      </section>
-    </div>
+      </div>
+    </section>
   )
 }
 

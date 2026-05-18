@@ -41,7 +41,6 @@ public class CustomerProfileController : ControllerBase
         }
 
         var userId = int.Parse(userIdClaim.Trim(), System.Globalization.CultureInfo.InvariantCulture);
-        Console.WriteLine($"UserId from JWT: {userId}");
 
         var customer = await _db.Customers
             .AsNoTracking()

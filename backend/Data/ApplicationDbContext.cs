@@ -23,6 +23,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<PartRequest> PartRequests => Set<PartRequest>();
     public DbSet<ServiceReview> ServiceReviews => Set<ServiceReview>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -213,6 +214,25 @@ public class ApplicationDbContext : DbContext
                 .WithMany(c => c.ServiceReviews)
                 .HasForeignKey(s => s.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
+            entity.Property(n => n.Message).HasMaxLength(1000).IsRequired();
+            entity.Property(n => n.Type).HasMaxLength(50).IsRequired();
+            entity.Property(n => n.CreatedAt).IsRequired();
+
+            entity.HasOne(n => n.Admin)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.AdminId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(n => n.VehiclePart)
+                .WithMany()
+                .HasForeignKey(n => n.VehiclePartId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

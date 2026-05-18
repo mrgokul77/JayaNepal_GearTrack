@@ -11,4 +11,5 @@ public class User
 
     public Customer? CustomerProfile { get; set; }
     public Staff? StaffProfile { get; set; }
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

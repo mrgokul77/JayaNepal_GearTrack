@@ -135,7 +135,7 @@ public class CustomerReportController : ControllerBase
     }
 
     /// <summary>
-    /// Customers with invoices matching credit follow-up rules (DiscountApplied &gt; 0 or TotalAmount &gt; 0).
+    /// Customers with invoices matching credit follow-up rules (outstanding unpaid balance - DiscountApplied &gt; 0).
     /// TotalUnpaid is the sum of TotalAmount on those matching invoices.
     /// </summary>
     [HttpGet("pending-credits")]
@@ -146,7 +146,7 @@ public class CustomerReportController : ControllerBase
         try
         {
             var aggregates = await _db.SalesInvoices.AsNoTracking()
-                .Where(si => si.DiscountApplied > 0 || si.TotalAmount > 0)
+                .Where(si => si.DiscountApplied > 0)
                 .GroupBy(si => si.CustomerId)
                 .Select(g => new
                 {

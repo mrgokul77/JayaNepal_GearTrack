@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './RegisterCustomer.css'
 
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
@@ -11,13 +9,7 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
-const initialCustomer = {
-  fullName: '',
-  email: '',
-  phone: '',
-  address: '',
-}
-
+const initialCustomer = { fullName: '', email: '', phone: '', address: '' }
 const initialVehicle = {
   vehicleNumber: '',
   brand: '',
@@ -85,83 +77,104 @@ function RegisterCustomer() {
   }
 
   return (
-    <div className="register-customer-page">
-      <h1>Register customer</h1>
-      <p className="register-customer-lead">
-        Create a customer account and attach their primary vehicle. Both steps are submitted together.
-      </p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Register customer</h1>
+          <p className="page-subtitle">Create a customer account and attach their primary vehicle in one step.</p>
+        </div>
+      </div>
 
-      <form className="register-customer-form" onSubmit={handleSubmit}>
-        <section className="register-section" aria-labelledby="customer-section-title">
-          <h2 id="customer-section-title">Customer details</h2>
-          <div className="register-field-grid">
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
+
+      <form onSubmit={handleSubmit}>
+        <div className="card">
+          <div className="card-header">
             <div>
-              <label htmlFor="fullName">Full name</label>
+              <div className="card-title">Customer details</div>
+              <div className="card-subtitle">Contact info and login email.</div>
+            </div>
+          </div>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="fullName">Full name</label>
               <input
                 id="fullName"
                 name="fullName"
+                className="form-input"
                 value={customer.fullName}
                 onChange={handleCustomerChange}
                 autoComplete="name"
                 required
               />
             </div>
-            <div>
-              <label htmlFor="email">Email</label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="email">Email</label>
               <input
                 id="email"
                 name="email"
                 type="email"
+                className="form-input"
                 value={customer.email}
                 onChange={handleCustomerChange}
                 autoComplete="email"
                 required
               />
             </div>
-            <div>
-              <label htmlFor="phone">Phone</label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="phone">Phone</label>
               <input
                 id="phone"
                 name="phone"
                 type="tel"
+                className="form-input"
                 value={customer.phone}
                 onChange={handleCustomerChange}
                 autoComplete="tel"
                 required
               />
             </div>
-            <div className="full-width">
-              <label htmlFor="address">Address</label>
+            <div className="form-group form-grid-full">
+              <label className="form-label" htmlFor="address">Address</label>
               <input
                 id="address"
                 name="address"
+                className="form-input"
                 value={customer.address}
                 onChange={handleCustomerChange}
                 autoComplete="street-address"
               />
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="register-section" aria-labelledby="vehicle-section-title">
-          <h2 id="vehicle-section-title">Vehicle details</h2>
-          <div className="register-field-grid two-cols">
+        <div className="card">
+          <div className="card-header">
             <div>
-              <label htmlFor="vehicleNumber">Vehicle number</label>
+              <div className="card-title">Vehicle details</div>
+              <div className="card-subtitle">Primary vehicle for this customer.</div>
+            </div>
+          </div>
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="vehicleNumber">Vehicle number</label>
               <input
                 id="vehicleNumber"
                 name="vehicleNumber"
+                className="form-input"
                 value={vehicle.vehicleNumber}
                 onChange={handleVehicleChange}
                 required
               />
             </div>
-            <div>
-              <label htmlFor="year">Year</label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="year">Year</label>
               <input
                 id="year"
                 name="year"
                 type="number"
+                className="form-input"
                 min={1900}
                 max={new Date().getFullYear() + 1}
                 value={vehicle.year}
@@ -169,35 +182,44 @@ function RegisterCustomer() {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="brand">Brand</label>
-              <input id="brand" name="brand" value={vehicle.brand} onChange={handleVehicleChange} required />
+            <div className="form-group">
+              <label className="form-label" htmlFor="brand">Brand</label>
+              <input
+                id="brand"
+                name="brand"
+                className="form-input"
+                value={vehicle.brand}
+                onChange={handleVehicleChange}
+                required
+              />
             </div>
-            <div>
-              <label htmlFor="model">Model</label>
-              <input id="model" name="model" value={vehicle.model} onChange={handleVehicleChange} required />
+            <div className="form-group">
+              <label className="form-label" htmlFor="model">Model</label>
+              <input
+                id="model"
+                name="model"
+                className="form-input"
+                value={vehicle.model}
+                onChange={handleVehicleChange}
+                required
+              />
             </div>
           </div>
-        </section>
 
-        {error && <p className="register-error">{error}</p>}
-        {success && (
-          <div className="register-success" role="status">
-            <strong>Success</strong>
-            {success}
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Saving&hellip;
+                </>
+              ) : (
+                'Save customer & vehicle'
+              )}
+            </button>
           </div>
-        )}
-
-        <div className="register-actions">
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : 'Save customer & vehicle'}
-          </button>
-          <Link className="link-muted" to="/staff">
-            Back to staff home
-          </Link>
         </div>
       </form>
-    </div>
+    </section>
   )
 }
 

@@ -1,171 +1,225 @@
 using System.Globalization;
-using System.Net;
+using System.Text;
 using backend.Data;
 using backend.Models;
 using backend.Options;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using MimeKit;
 
 namespace backend.Services;
 
-/// <summary>
-/// MailKit-based SMTP sender for sales invoice notifications.
-/// </summary>
 public class EmailService : IEmailService
 {
-    private static readonly string[] PlaceholderPasswords =
-    [
-        "your-app-password",
-        "app-password-here",
-    ];
+    public const string InvoiceNotFoundMessage = "Invoice not found.";
+    public const string CustomerEmailMissingMessage = "Customer does not have an email address on file.";
+    public const string SmtpNotConfiguredMessage =
+        "Email is not configured. Set EmailSettings in appsettings.json (SMTP host, port, sender email, and app password).";
 
     private readonly ApplicationDbContext _db;
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailService> _logger;
 
-    public EmailService(
-        ApplicationDbContext db,
-        IOptions<EmailSettings> options,
-        ILogger<EmailService> logger)
+    public EmailService(ApplicationDbContext db, IConfiguration configuration, ILogger<EmailService> logger)
     {
         _db = db;
-        _settings = options.Value;
+        _settings = EmailSettings.FromConfiguration(configuration);
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public async Task<bool> SendInvoiceEmailAsync(int invoiceId)
+    public async Task SendInvoiceEmailAsync(int invoiceId)
     {
-        if (!IsSmtpConfigured())
+        ValidateSmtpSettings();
+
+        var invoice = await _db.SalesInvoices.AsNoTracking()
+            .Include(s => s.Customer)
+            .Include(s => s.Items)
+            .ThenInclude(i => i.Part)
+            .FirstOrDefaultAsync(s => s.Id == invoiceId);
+
+        if (invoice is null)
         {
-            _logger.LogWarning("SendInvoiceEmailAsync skipped: SMTP settings are missing or still use a placeholder password.");
-            return false;
+            throw new InvalidOperationException(InvoiceNotFoundMessage);
         }
 
-        try
+        var toEmail = invoice.Customer.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(toEmail))
         {
-            var invoice = await _db.SalesInvoices.AsNoTracking()
-                .Include(s => s.Customer)
-                .Include(s => s.Items)
-                .ThenInclude(i => i.Part)
-                .FirstOrDefaultAsync(s => s.Id == invoiceId);
-
-            if (invoice is null)
-            {
-                _logger.LogWarning("SendInvoiceEmailAsync: invoice {InvoiceId} not found.", invoiceId);
-                return false;
-            }
-
-            var toEmail = invoice.Customer.Email?.Trim();
-            if (string.IsNullOrWhiteSpace(toEmail))
-            {
-                _logger.LogWarning("SendInvoiceEmailAsync: customer {CustomerId} has no email.", invoice.CustomerId);
-                return false;
-            }
-
-            var customerName = invoice.Customer.FullName.Trim();
-            var html = BuildInvoiceHtml(invoice, customerName);
-            var senderName = string.IsNullOrWhiteSpace(_settings.SenderName)
-                ? "GearTrack"
-                : _settings.SenderName.Trim();
-
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(senderName, _settings.SenderEmail.Trim()));
-            message.To.Add(MailboxAddress.Parse(toEmail));
-            message.Subject = $"GearTrack — Sales invoice #{invoice.Id}";
-
-            var body = new BodyBuilder { HtmlBody = html };
-            message.Body = body.ToMessageBody();
-
-            using var client = new SmtpClient();
-            await client.ConnectAsync(_settings.SmtpHost.Trim(), _settings.SmtpPort, SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(_settings.SenderEmail.Trim(), _settings.SenderPassword);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
-
-            _logger.LogInformation("Invoice {InvoiceId} emailed to {Recipient}.", invoiceId, toEmail);
-            return true;
+            throw new InvalidOperationException(CustomerEmailMissingMessage);
         }
-        catch (Exception ex)
+
+        var customerName = invoice.Customer.FullName.Trim();
+        var body = BuildInvoiceBody(invoice, customerName);
+
+        var message = new MimeMessage();
+        message.From.Add(MailboxAddress.Parse(_settings.SenderEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = $"GearTrack sales invoice #{invoice.Id}";
+        message.Body = new TextPart("plain") { Text = body };
+
+        await SendViaSmtpAsync(message);
+    }
+
+    /// <inheritdoc />
+    public async Task SendCreditReminderEmailAsync(
+        string toEmail,
+        string customerName,
+        IReadOnlyList<CreditReminderLine> lines,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateSmtpSettings();
+
+        if (string.IsNullOrWhiteSpace(toEmail))
         {
-            _logger.LogError(ex, "SendInvoiceEmailAsync failed for invoice {InvoiceId}.", invoiceId);
-            return false;
+            throw new InvalidOperationException(CustomerEmailMissingMessage);
+        }
+
+        if (lines is null || lines.Count == 0)
+        {
+            throw new InvalidOperationException("No invoice lines supplied for credit reminder.");
+        }
+
+        var body = BuildCreditReminderBody(customerName, lines);
+
+        var message = new MimeMessage();
+        message.From.Add(MailboxAddress.Parse(_settings.SenderEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail.Trim()));
+        message.Subject = "GearTrack — friendly reminder about your account balance";
+        message.Body = new TextPart("plain") { Text = body };
+
+        await SendViaSmtpAsync(message, cancellationToken);
+    }
+
+    /// <summary>
+    /// Sends mail via MailKit (not System.Net.Mail). MailKit has no UseDefaultCredentials or EnableSsl;
+    /// TLS is chosen via <see cref="SecureSocketOptions"/> on Connect, and auth is explicit on AuthenticateAsync.
+    /// </summary>
+    private async Task SendViaSmtpAsync(MimeMessage message, CancellationToken cancellationToken = default)
+    {
+        var socketOptions = ResolveSecureSocketOptions(_settings.SmtpHost, _settings.SmtpPort);
+
+        _logger.LogInformation(
+            "SMTP send: Host={Host}, Port={Port}, SecureSocket={SecureSocket}, SenderEmail={SenderEmail}, " +
+            "PasswordLength={PasswordLength}, PasswordContainedWhitespace={PasswordHadWhitespace}, " +
+            "Client=MailKit (explicit AuthenticateAsync; no UseDefaultCredentials)",
+            _settings.SmtpHost,
+            _settings.SmtpPort,
+            socketOptions,
+            _settings.SenderEmail,
+            _settings.SenderPassword.Length,
+            _settings.PasswordContainedWhitespace);
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, socketOptions, cancellationToken);
+
+        if (!client.IsAuthenticated)
+        {
+            await client.AuthenticateAsync(
+                Encoding.UTF8,
+                _settings.SenderEmail,
+                _settings.SenderPassword,
+                cancellationToken);
+        }
+
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+    }
+
+    private static SecureSocketOptions ResolveSecureSocketOptions(string host, int port) =>
+        port switch
+        {
+            465 => SecureSocketOptions.SslOnConnect,
+            587 => SecureSocketOptions.StartTls,
+            _ when host.Contains("gmail", StringComparison.OrdinalIgnoreCase) => SecureSocketOptions.StartTls,
+            _ => SecureSocketOptions.Auto,
+        };
+
+    private static string BuildCreditReminderBody(string customerName, IReadOnlyList<CreditReminderLine> lines)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Hello ").Append(customerName.Trim()).AppendLine(",");
+        sb.AppendLine();
+        sb.AppendLine(
+            "This is a friendly reminder regarding your GearTrack purchase(s) where a discount or credit was applied more than 30 days ago.");
+        sb.AppendLine("Please review the following invoice(s) and arrange any outstanding balance with our team if applicable.");
+        sb.AppendLine();
+        sb.AppendLine("Invoice reference:");
+        sb.AppendLine(new string('-', 48));
+
+        foreach (var line in lines.OrderBy(l => l.SaleDate))
+        {
+            sb.Append("- Invoice #").Append(line.InvoiceId.ToString(CultureInfo.InvariantCulture));
+            sb.Append(" | Date: ").AppendLine(line.SaleDate.ToString("u", CultureInfo.InvariantCulture));
+            sb.Append("  Sale total: ").Append(FormatMoney(line.TotalAmount));
+            sb.Append(" | Discount / credit applied: ").AppendLine(FormatMoney(line.DiscountApplied));
+        }
+
+        sb.AppendLine(new string('-', 48));
+        sb.AppendLine();
+        sb.AppendLine("If you have already settled this, you may disregard this email.");
+        sb.AppendLine();
+        sb.AppendLine("— GearTrack Vehicle Parts");
+
+        return sb.ToString();
+    }
+
+    private void ValidateSmtpSettings()
+    {
+        if (!_settings.IsConfigured)
+        {
+            throw new InvalidOperationException(SmtpNotConfiguredMessage);
         }
     }
 
-    /// <summary>True when host, port, credentials are present and password is not a documented placeholder.</summary>
-    private bool IsSmtpConfigured()
+    private static string BuildInvoiceBody(SalesInvoice invoice, string customerName)
     {
-        if (string.IsNullOrWhiteSpace(_settings.SmtpHost)
-            || string.IsNullOrWhiteSpace(_settings.SenderEmail)
-            || string.IsNullOrWhiteSpace(_settings.SenderPassword)
-            || _settings.SmtpPort <= 0)
-        {
-            return false;
-        }
+        var sb = new StringBuilder();
+        sb.AppendLine("Hello ").Append(customerName).AppendLine(",");
+        sb.AppendLine();
+        sb.AppendLine("Thank you for your purchase. Here is a summary of your sales invoice.");
+        sb.AppendLine();
+        sb.Append("Invoice #: ").AppendLine(invoice.Id.ToString(CultureInfo.InvariantCulture));
+        sb.Append("Date: ").AppendLine(invoice.SaleDate.ToString("u", CultureInfo.InvariantCulture));
+        sb.AppendLine();
+        sb.AppendLine("Items:");
+        sb.AppendLine(new string('-', 48));
 
-        var pwd = _settings.SenderPassword.Trim();
-        if (PlaceholderPasswords.Contains(pwd, StringComparer.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>Builds a simple HTML body: customer, invoice meta, line table, totals.</summary>
-    private static string BuildInvoiceHtml(SalesInvoice invoice, string customerName)
-    {
-        var safeName = WebUtility.HtmlEncode(customerName);
         var items = (invoice.Items ?? []).OrderBy(i => i.Id).ToList();
-        var rows = new System.Text.StringBuilder();
         foreach (var line in items)
         {
-            var name = WebUtility.HtmlEncode(line.Part?.Name ?? $"Part #{line.PartId}");
+            var name = line.Part?.Name ?? $"Part #{line.PartId}";
             var qty = line.Quantity.ToString(CultureInfo.InvariantCulture);
             var unit = FormatMoney(line.UnitPrice);
-            rows.Append("<tr>")
-                .Append("<td style=\"padding:8px;border:1px solid #e5e7eb;\">").Append(name).Append("</td>")
-                .Append("<td style=\"padding:8px;border:1px solid #e5e7eb;text-align:right;\">").Append(qty).Append("</td>")
-                .Append("<td style=\"padding:8px;border:1px solid #e5e7eb;text-align:right;\">").Append(unit).Append("</td>")
-                .Append("</tr>");
+            var sub = FormatMoney(line.UnitPrice * line.Quantity);
+            sb.Append("- ").Append(name);
+            sb.Append(" | Qty ").Append(qty);
+            sb.Append(" | Unit ").Append(unit);
+            sb.Append(" | Line ").AppendLine(sub);
         }
 
-        var total = FormatMoney(invoice.TotalAmount);
-        var discount = FormatMoney(invoice.DiscountApplied);
-        var due = FormatMoney(invoice.TotalAmount - invoice.DiscountApplied);
-        var discountRow = invoice.DiscountApplied > 0
-            ? $"<tr><td colspan=\"2\" style=\"padding:8px;text-align:right;font-weight:600;\">Discount applied</td><td style=\"padding:8px;text-align:right;\">{discount}</td></tr>"
-            : string.Empty;
+        sb.AppendLine(new string('-', 48));
+        sb.Append("Subtotal (before discount): ").AppendLine(FormatMoney(invoice.TotalAmount));
+        if (invoice.DiscountApplied > 0)
+        {
+            sb.Append("Discount applied: ").AppendLine(FormatMoney(invoice.DiscountApplied));
+        }
+        else
+        {
+            sb.AppendLine("Discount applied: 0.00");
+        }
 
-        return $"""
-            <html><body style="font-family:Segoe UI,Roboto,Arial,sans-serif;font-size:14px;color:#111827;">
-            <p>Hello {safeName},</p>
-            <p>Thank you for your purchase. Below is a summary of your sales invoice.</p>
-            <p><strong>Invoice ID:</strong> {invoice.Id}<br/>
-            <strong>Date:</strong> {WebUtility.HtmlEncode(invoice.SaleDate.ToString("u", CultureInfo.InvariantCulture))}</p>
-            <table style="border-collapse:collapse;width:100%;max-width:560px;margin:16px 0;">
-            <thead><tr>
-            <th style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;text-align:left;">Part</th>
-            <th style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;text-align:right;">Qty</th>
-            <th style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;text-align:right;">Price</th>
-            </tr></thead>
-            <tbody>{rows}</tbody>
-            </table>
-            <table style="border-collapse:collapse;max-width:360px;">
-            <tr><td style="padding:6px 8px;font-weight:600;">Total amount</td><td style="padding:6px 8px;text-align:right;">{total}</td></tr>
-            {discountRow}
-            <tr><td style="padding:6px 8px;font-weight:700;">Amount due</td><td style="padding:6px 8px;text-align:right;font-weight:700;">{due}</td></tr>
-            </table>
-            <p style="margin-top:24px;color:#6b7280;font-size:12px;">— GearTrack Vehicle Parts</p>
-            </body></html>
-            """;
+        var due = invoice.TotalAmount - invoice.DiscountApplied;
+        sb.Append("Amount due: ").AppendLine(FormatMoney(due));
+        sb.AppendLine();
+        sb.AppendLine("— GearTrack Vehicle Parts");
+
+        return sb.ToString();
     }
 
     private static string FormatMoney(decimal value) =>
-        WebUtility.HtmlEncode(value.ToString("N2", CultureInfo.InvariantCulture));
+        value.ToString("N2", CultureInfo.InvariantCulture);
 }

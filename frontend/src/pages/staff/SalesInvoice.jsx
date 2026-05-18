@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../../services/api'
-import './SalesInvoice.css'
 
-/** Extract a readable error string from Axios errors. */
 function getErrorMessage(error, fallback) {
   const data = error.response?.data
   if (typeof data === 'string') return data
@@ -12,10 +9,16 @@ function getErrorMessage(error, fallback) {
   return fallback
 }
 
+const money = new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+})
+
 function formatMoney(value) {
   const n = Number(value)
-  if (Number.isNaN(n)) return '0.00'
-  return n.toFixed(2)
+  if (Number.isNaN(n)) return money.format(0)
+  return money.format(n)
 }
 
 function newLine() {
@@ -24,6 +27,15 @@ function newLine() {
     partId: '',
     quantity: 1,
     unitPrice: '',
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return '\u2014'
+  try {
+    return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  } catch {
+    return String(value)
   }
 }
 
@@ -39,7 +51,7 @@ function SalesInvoice() {
   const [lines, setLines] = useState([newLine()])
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [listLoading, setListLoading] = useState(true)
   const [sendingEmailInvoiceId, setSendingEmailInvoiceId] = useState(null)
   const [emailFeedback, setEmailFeedback] = useState(null)
@@ -50,7 +62,7 @@ function SalesInvoice() {
     try {
       const [cRes, pRes, iRes] = await Promise.all([
         api.get('/customers'),
-        api.get('/VehicleParts'),
+        api.get('/vehicle-parts'),
         api.get('/sales-invoices'),
       ])
       setCustomers(cRes.data ?? [])
@@ -64,7 +76,7 @@ function SalesInvoice() {
   }, [])
 
   useEffect(() => {
-    loadLists()
+    void loadLists()
   }, [loadLists])
 
   const filteredCustomers = useMemo(() => {
@@ -86,17 +98,12 @@ function SalesInvoice() {
     }, 0)
   }, [lines])
 
-  const loyaltyDiscountPreview =
-    runningSubtotal > LOYALTY_THRESHOLD ? runningSubtotal * LOYALTY_RATE : 0
+  const loyaltyDiscountPreview = runningSubtotal > LOYALTY_THRESHOLD ? runningSubtotal * LOYALTY_RATE : 0
   const amountDuePreview = runningSubtotal - loyaltyDiscountPreview
+  const qualifies = runningSubtotal > LOYALTY_THRESHOLD
 
-  const addLine = () => {
-    setLines((prev) => [...prev, newLine()])
-  }
-
-  const removeLine = (key) => {
-    setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.key !== key)))
-  }
+  const addLine = () => setLines((prev) => [...prev, newLine()])
+  const removeLine = (key) => setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.key !== key)))
 
   const updateLine = (key, field, value) => {
     setLines((prev) =>
@@ -105,11 +112,7 @@ function SalesInvoice() {
         const next = { ...line, [field]: value }
         if (field === 'partId') {
           const part = parts.find((p) => String(p.id) === String(value))
-          if (part) {
-            next.unitPrice = String(part.price)
-          } else {
-            next.unitPrice = ''
-          }
+          next.unitPrice = part ? String(part.price) : ''
         }
         return next
       }),
@@ -125,19 +128,13 @@ function SalesInvoice() {
       setError('Please select a customer.')
       return
     }
-
     const items = lines
-      .map((line) => ({
-        partId: Number(line.partId),
-        quantity: Number(line.quantity),
-      }))
+      .map((line) => ({ partId: Number(line.partId), quantity: Number(line.quantity) }))
       .filter((row) => !Number.isNaN(row.partId) && row.partId > 0 && row.quantity > 0)
-
     if (items.length === 0) {
       setError('Add at least one part line with a valid part and quantity.')
       return
     }
-
     const seen = new Set()
     for (const row of items) {
       if (seen.has(row.partId)) {
@@ -146,8 +143,7 @@ function SalesInvoice() {
       }
       seen.add(row.partId)
     }
-
-    setLoading(true)
+    setSubmitting(true)
     try {
       await api.post('/sales-invoices', { customerId: cid, items })
       setSuccess('Sales invoice created successfully.')
@@ -158,7 +154,7 @@ function SalesInvoice() {
     } catch (requestError) {
       setError(getErrorMessage(requestError, 'Could not create sales invoice.'))
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -179,177 +175,191 @@ function SalesInvoice() {
   }
 
   return (
-    <div className="sales-invoice-page">
-      <Link className="sales-back-link" to="/staff">
-        ← Staff workspace
-      </Link>
-      <h1>Create sales invoice</h1>
-      <p className="sales-invoice-lead">
-        Select a customer, add vehicle parts and quantities. Unit prices come from inventory. A 10% loyalty
-        discount applies when the subtotal exceeds {LOYALTY_THRESHOLD.toLocaleString()}.
-      </p>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Sales invoice</h1>
+          <p className="page-subtitle">
+            Add parts and quantities. Unit prices come from inventory. A 10% loyalty discount applies when the subtotal
+            exceeds {formatMoney(LOYALTY_THRESHOLD)}.
+          </p>
+        </div>
+      </div>
 
-      {error ? <p className="sales-msg-error">{error}</p> : null}
-      {success ? <p className="sales-msg-success">{success}</p> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
+      {success ? <div className="alert alert-success">{success}</div> : null}
 
-      <section className="sales-invoice-panel">
-        <h2>New invoice</h2>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">New invoice</div>
+          <span className="badge badge-info">Subtotal: {formatMoney(runningSubtotal)}</span>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          <div className="sales-form-grid two">
-            <div>
-              <label htmlFor="customerSearch">Search customer</label>
-              <input
-                id="customerSearch"
-                type="search"
-                placeholder="Name, email, or phone"
-                value={customerSearch}
-                onChange={(ev) => setCustomerSearch(ev.target.value)}
-                autoComplete="off"
-              />
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label" htmlFor="customerSearch">Search customer</label>
+              <div className="form-input-icon">
+                <span className="form-input-icon-glyph" aria-hidden="true">{'\u{1F50D}'}</span>
+                <input
+                  id="customerSearch"
+                  type="search"
+                  className="form-input"
+                  placeholder="Name, email, or phone"
+                  value={customerSearch}
+                  onChange={(ev) => setCustomerSearch(ev.target.value)}
+                  autoComplete="off"
+                />
+              </div>
             </div>
-            <div>
-              <label htmlFor="customerSelect">Customer</label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="customerSelect">Customer</label>
               <select
                 id="customerSelect"
+                className="form-select"
                 value={selectedCustomerId}
                 onChange={(ev) => setSelectedCustomerId(ev.target.value)}
                 required
               >
-                <option value="">Select customer…</option>
+                <option value="">Select customer&hellip;</option>
                 {filteredCustomers.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.fullName} — {c.email}
+                    {c.fullName} &mdash; {c.email}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          <h3 style={{ margin: '1.25rem 0 0.5rem', fontSize: '1rem' }}>Line items</h3>
-          <table className="sales-line-table">
-            <thead>
-              <tr>
-                <th>Part</th>
-                <th>Qty</th>
-                <th>Unit price</th>
-                <th>Line total</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line) => {
-                const qty = Number(line.quantity) || 0
-                const price = Number(line.unitPrice) || 0
-                const lineTotal = qty * price
-                return (
-                  <tr key={line.key}>
-                    <td>
-                      <select
-                        value={line.partId}
-                        onChange={(ev) => updateLine(line.key, 'partId', ev.target.value)}
-                        required
-                      >
-                        <option value="">Select part…</option>
-                        {parts.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (stock {p.stockQuantity})
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={{ maxWidth: '5rem' }}>
-                      <input
-                        type="number"
-                        min={1}
-                        value={line.quantity}
-                        onChange={(ev) => updateLine(line.key, 'quantity', ev.target.value)}
-                      />
-                    </td>
-                    <td>{line.unitPrice !== '' ? formatMoney(line.unitPrice) : '—'}</td>
-                    <td>{formatMoney(lineTotal)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="sales-btn sales-btn-danger"
-                        onClick={() => removeLine(line.key)}
-                        disabled={lines.length <= 1}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-
-          <div className="sales-line-actions">
-            <button type="button" className="sales-btn sales-btn-secondary" onClick={addLine}>
-              Add line
-            </button>
-            <button type="submit" className="sales-btn sales-btn-primary" disabled={loading}>
-              {loading ? 'Saving…' : 'Create invoice'}
-            </button>
+          <div className="table-wrap mt-4" style={{ border: '1px solid var(--color-border)' }}>
+            <table className="line-table">
+              <thead>
+                <tr>
+                  <th>Part</th>
+                  <th className="narrow">Qty</th>
+                  <th>Unit price</th>
+                  <th className="num">Line total</th>
+                  <th className="actions-col" />
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((line) => {
+                  const qty = Number(line.quantity) || 0
+                  const price = Number(line.unitPrice) || 0
+                  return (
+                    <tr key={line.key}>
+                      <td>
+                        <select
+                          className="form-select"
+                          value={line.partId}
+                          onChange={(ev) => updateLine(line.key, 'partId', ev.target.value)}
+                          required
+                        >
+                          <option value="">Select part&hellip;</option>
+                          {parts.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} (stock {p.stockQuantity})
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min={1}
+                          className="form-input"
+                          value={line.quantity}
+                          onChange={(ev) => updateLine(line.key, 'quantity', ev.target.value)}
+                        />
+                      </td>
+                      <td className="muted">{line.unitPrice !== '' ? formatMoney(line.unitPrice) : '\u2014'}</td>
+                      <td className="num"><strong>{formatMoney(qty * price)}</strong></td>
+                      <td className="actions-col">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => removeLine(line.key)}
+                          disabled={lines.length <= 1}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
 
-          <div className="sales-totals-row">
-            <span>
-              Subtotal: <strong>{formatMoney(runningSubtotal)}</strong>
-            </span>
-            {loyaltyDiscountPreview > 0 ? (
+          <div className="totals-strip">
+            <span>Subtotal: <strong>{formatMoney(runningSubtotal)}</strong></span>
+            {qualifies ? (
               <>
-                <span>
-                  Est. loyalty (10%): <strong>−{formatMoney(loyaltyDiscountPreview)}</strong>
-                </span>
-                <span>
-                  Est. amount due: <strong>{formatMoney(amountDuePreview)}</strong>
-                </span>
+                <span className="text-success">Loyalty (10%): <strong>&minus;{formatMoney(loyaltyDiscountPreview)}</strong></span>
+                <span>Estimated due: <strong>{formatMoney(amountDuePreview)}</strong></span>
               </>
             ) : null}
           </div>
 
-          {runningSubtotal > LOYALTY_THRESHOLD ? (
-            <div className="sales-discount-banner">
-              Loyalty discount: 10% applies to this sale (subtotal above {LOYALTY_THRESHOLD.toLocaleString()}).
+          {qualifies ? (
+            <div className="discount-banner">
+              <span aria-hidden="true">{'\u{1F3C5}'}</span> Loyalty discount: 10% applies to this sale (subtotal above {formatMoney(LOYALTY_THRESHOLD)}).
             </div>
           ) : runningSubtotal > 0 && runningSubtotal <= LOYALTY_THRESHOLD ? (
-            <p style={{ marginTop: '0.75rem', color: '#6b7280', fontSize: '0.88rem' }}>
-              Add {(LOYALTY_THRESHOLD - runningSubtotal + 0.01).toFixed(2)} more to qualify for 10% loyalty
-              discount.
+            <p className="muted mt-3">
+              Add {formatMoney(LOYALTY_THRESHOLD - runningSubtotal + 0.01)} more to qualify for the 10% loyalty discount.
             </p>
           ) : null}
-        </form>
-      </section>
 
-      <section className="sales-invoice-panel">
-        <h2>All sales invoices</h2>
-        {emailFeedback?.type === 'success' ? (
-          <p className="sales-msg-success" role="status">
-            {emailFeedback.text}
-          </p>
-        ) : null}
-        {emailFeedback?.type === 'error' ? (
-          <p className="sales-msg-error" role="alert">
-            {emailFeedback.text}
-          </p>
-        ) : null}
+          <div className="form-actions">
+            <button type="button" className="btn btn-secondary" onClick={addLine}>
+              <span aria-hidden="true">{'\u2795'}</span> Add line
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Saving&hellip;
+                </>
+              ) : (
+                'Create invoice'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">All sales invoices</div>
+          <span className="muted">{invoices.length} record(s)</span>
+        </div>
+
+        {emailFeedback?.type === 'success' ? <div className="alert alert-success">{emailFeedback.text}</div> : null}
+        {emailFeedback?.type === 'error' ? <div className="alert alert-error">{emailFeedback.text}</div> : null}
+
         {listLoading ? (
-          <p>Loading…</p>
+          <div className="loading-state">
+            <span className="spinner" aria-hidden="true" /> Loading&hellip;
+          </div>
         ) : invoices.length === 0 ? (
-          <p>No sales invoices yet.</p>
+          <div className="empty-state">
+            <div className="empty-state-icon" aria-hidden="true">{'\u{1F4C4}'}</div>
+            <div className="empty-state-title">No sales invoices yet</div>
+            <div className="empty-state-desc">Create one above to get started.</div>
+          </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="sales-invoice-list-table">
+          <div className="table-wrap">
+            <table className="table table-striped">
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>Date</th>
                   <th>Customer</th>
                   <th>Staff</th>
-                  <th>Subtotal</th>
-                  <th>Discount</th>
-                  <th>Due</th>
-                  <th>Email</th>
+                  <th className="num">Subtotal</th>
+                  <th className="num">Discount</th>
+                  <th className="num">Due</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -358,21 +368,33 @@ function SalesInvoice() {
                   const sendingThis = sendingEmailInvoiceId === inv.id
                   return (
                     <tr key={inv.id}>
-                      <td>{inv.id}</td>
-                      <td>{inv.saleDate ? new Date(inv.saleDate).toLocaleString() : '—'}</td>
+                      <td><strong>#{inv.id}</strong></td>
+                      <td className="muted">{formatDateTime(inv.saleDate)}</td>
                       <td>{inv.customerName}</td>
                       <td>{inv.staffName}</td>
-                      <td>{formatMoney(inv.totalAmount)}</td>
-                      <td>{formatMoney(inv.discountApplied)}</td>
-                      <td>{formatMoney(due)}</td>
-                      <td className="sales-invoice-actions-cell">
+                      <td className="num">{formatMoney(inv.totalAmount)}</td>
+                      <td className="num">
+                        {Number(inv.discountApplied) > 0 ? (
+                          <span className="badge badge-success">{formatMoney(inv.discountApplied)}</span>
+                        ) : (
+                          <span className="muted">{'\u2014'}</span>
+                        )}
+                      </td>
+                      <td className="num"><strong>{formatMoney(due)}</strong></td>
+                      <td>
                         <button
                           type="button"
-                          className="sales-btn sales-btn-email"
+                          className="btn btn-secondary btn-sm"
                           onClick={() => void handleSendInvoiceEmail(inv.id)}
                           disabled={sendingThis}
                         >
-                          {sendingThis ? 'Sending…' : 'Send email'}
+                          {sendingThis ? (
+                            <>
+                              <span className="spinner" aria-hidden="true" /> Sending&hellip;
+                            </>
+                          ) : (
+                            <>{'\u{1F4E7}'} Email</>
+                          )}
                         </button>
                       </td>
                     </tr>
@@ -382,8 +404,8 @@ function SalesInvoice() {
             </table>
           </div>
         )}
-      </section>
-    </div>
+      </div>
+    </section>
   )
 }
 

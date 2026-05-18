@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import './LogoutButton.css'
 
+/**
+ * Clears the local session and redirects to the login page.
+ * Used inside the sidebar footer on every dashboard.
+ */
 function LogoutButton() {
   const navigate = useNavigate()
 
@@ -15,7 +18,8 @@ function LogoutButton() {
 
   return (
     <button type="button" className="logout-button" onClick={handleLogout}>
-      Log out
+      <span aria-hidden="true">{'\u23FB'}</span>
+      <span>Log out</span>
     </button>
   )
 }

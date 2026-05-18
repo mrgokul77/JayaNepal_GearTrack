@@ -2,13 +2,19 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardLayout from './layouts/DashboardLayout'
 import AdminPage from './pages/AdminPage'
+import FinancialReports from './pages/admin/FinancialReports'
+import LoyaltyStats from './pages/admin/LoyaltyStats'
+import Notifications from './pages/admin/Notifications'
 import PurchaseInvoice from './pages/admin/PurchaseInvoice'
+import PartsManagement from './pages/admin/PartsManagement'
 import RegisterStaff from './pages/admin/RegisterStaff'
 import VendorManagement from './pages/admin/VendorManagement'
 import CustomerPage from './pages/CustomerPage'
 import Appointments from './pages/customer/Appointments'
 import PartRequests from './pages/customer/PartRequests'
 import ProfilePage from './pages/customer/ProfilePage'
+import LoyaltyBenefits from './pages/customer/LoyaltyBenefits'
+import PurchaseHistory from './pages/customer/PurchaseHistory'
 import ServiceReviews from './pages/customer/ServiceReviews'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -31,7 +37,11 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/register-staff" element={<RegisterStaff />} />
           <Route path="/admin/vendors" element={<VendorManagement />} />
+          <Route path="/admin/parts" element={<PartsManagement />} />
           <Route path="/admin/purchase-invoices" element={<PurchaseInvoice />} />
+          <Route path="/admin/notifications" element={<Notifications />} />
+          <Route path="/admin/loyalty" element={<LoyaltyStats />} />
+          <Route path="/admin/financial-reports" element={<FinancialReports />} />
         </Route>
       </Route>
 
@@ -53,6 +63,8 @@ function App() {
           <Route path="/customer/part-requests" element={<PartRequests />} />
           <Route path="/customer/reviews" element={<ServiceReviews />} />
           <Route path="/customer/profile" element={<ProfilePage />} />
+          <Route path="/customer/history" element={<PurchaseHistory />} />
+          <Route path="/customer/loyalty" element={<LoyaltyBenefits />} />
         </Route>
       </Route>
 
