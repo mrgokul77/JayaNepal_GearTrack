@@ -146,7 +146,7 @@ public class CustomerReportController : ControllerBase
         try
         {
             var aggregates = await _db.SalesInvoices.AsNoTracking()
-                .Where(si => si.DiscountApplied > 0)
+                .Where(si => si.DiscountApplied > 0 && !si.IsPaid)
                 .GroupBy(si => si.CustomerId)
                 .Select(g => new
                 {

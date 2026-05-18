@@ -38,5 +38,6 @@ public class SalesInvoiceResponseDto
     public decimal TotalAmount { get; set; }
     public decimal DiscountApplied { get; set; }
     public DateTime SaleDate { get; set; }
+    public bool IsPaid { get; set; }
     public List<SalesInvoiceItemResponseDto> Items { get; set; } = new();
 }

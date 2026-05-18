@@ -29,6 +29,33 @@ public class SalesInvoiceController : ControllerBase
         _dbContext = dbContext;
     }
 
+    /// <summary>Mark a sales invoice as paid (Staff or Admin).</summary>
+    [HttpPatch("{id:int}/mark-paid")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> MarkAsPaid(int id)
+    {
+        var entity = await _dbContext.SalesInvoices.FirstOrDefaultAsync(s => s.Id == id);
+        if (entity is null)
+        {
+            return NotFound();
+        }
+
+        if (entity.IsPaid)
+        {
+            // already paid, return current state
+            var existing = await _salesInvoiceService.GetByIdAsync(id);
+            return Ok(existing);
+        }
+
+        entity.IsPaid = true;
+        _dbContext.SalesInvoices.Update(entity);
+        await _dbContext.SaveChangesAsync();
+
+        var dto = await _salesInvoiceService.GetByIdAsync(id);
+        return Ok(dto);
+    }
+
     /// <summary>Lists all sales invoices with lines, customer, and staff.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<SalesInvoiceResponseDto>), StatusCodes.Status200OK)]

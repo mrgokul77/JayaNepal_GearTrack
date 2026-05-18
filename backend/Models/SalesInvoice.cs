@@ -8,6 +8,7 @@ public class SalesInvoice
     public decimal TotalAmount { get; set; }
     public DateTime SaleDate { get; set; } = DateTime.UtcNow;
     public decimal DiscountApplied { get; set; }
+    public bool IsPaid { get; set; } = false;
 
     public Customer Customer { get; set; } = null!;
     public Staff Staff { get; set; } = null!;
