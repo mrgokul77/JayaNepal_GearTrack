@@ -103,7 +103,11 @@ function PartsManagement() {
       setSuccess('Part deleted.')
       await loadAll()
     } catch (err) {
-      setError(getErrorMessage(err, 'Could not delete part.'))
+      if (err.response?.status === 409) {
+        setError('This part cannot be deleted because it is referenced in existing invoices.')
+      } else {
+        setError(getErrorMessage(err, 'Could not delete part.'))
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using backend.Data;
+using backend.Exceptions;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -87,5 +88,40 @@ public class CustomerRepository : ICustomerRepository
             .Where(c => customerIds.Contains(c.Id))
             .OrderBy(c => c.FullName)
             .ToListAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var customer = await _dbContext.Customers.FirstOrDefaultAsync(c => c.Id == id);
+        if (customer is null)
+        {
+            return false;
+        }
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == customer.UserId);
+
+        _dbContext.Customers.Remove(customer);
+        if (user is not null)
+        {
+            _dbContext.Users.Remove(user);
+        }
+
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException ex)
+        {
+            var innerMsg = ex.InnerException?.Message ?? string.Empty;
+            if (innerMsg.Contains("23503") || innerMsg.Contains("violates foreign key constraint"))
+            {
+                throw new ReferencedEntityException(
+                    "This customer cannot be deleted because they have existing invoices or appointments.");
+            }
+
+            throw;
+        }
     }
 }

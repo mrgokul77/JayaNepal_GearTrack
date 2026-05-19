@@ -35,6 +35,7 @@ function ProfilePage() {
   const [profileNotFound, setProfileNotFound] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingVehicle, setSavingVehicle] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
 
   const loadProfile = useCallback(async () => {
     setError('')
@@ -178,6 +179,23 @@ function ProfilePage() {
       setError(getErrorMessage(e, 'Could not update vehicle.'))
     } finally {
       setSavingVehicle(false)
+    }
+  }
+
+  const handleDeleteVehicle = async (v) => {
+    const ok = window.confirm(`Are you sure you want to delete ${v.vehicleNumber}?`)
+    if (!ok) return
+    setError('')
+    setSuccess('')
+    setDeletingId(v.id)
+    try {
+      await api.delete(`/customer-profile/vehicles/${v.id}`)
+      setSuccess('Vehicle deleted.')
+      await loadProfile()
+    } catch (e) {
+      setError(getErrorMessage(e, 'Could not delete vehicle.'))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -375,14 +393,29 @@ function ProfilePage() {
                   <div className="item-card-meta">
                     {v.brand} {v.model}
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => startEditVehicle(v)}
-                    style={{ alignSelf: 'flex-start' }}
-                  >
-                    Edit
-                  </button>
+                  <div className="flex gap-2" style={{ marginTop: 'var(--space-3)' }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => startEditVehicle(v)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      disabled={deletingId === v.id}
+                      onClick={() => handleDeleteVehicle(v)}
+                    >
+                      {deletingId === v.id ? (
+                        <>
+                          <span className="spinner" aria-hidden="true" /> Delete
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </button>
+                  </div>
                 </div>
               ),
             )}

@@ -37,6 +37,9 @@ function PartRequests() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [editModal, setEditModal] = useState({ open: false, id: null, partName: '', description: '' })
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
 
   const load = useCallback(async () => {
     setError('')
@@ -82,6 +85,68 @@ function PartRequests() {
       setError(getErrorMessage(e, 'Could not submit part request.'))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleOpenEdit = (item) => {
+    setError('')
+    setSuccess('')
+    setEditModal({
+      open: true,
+      id: item.id,
+      partName: item.partName,
+      description: item.description || '',
+    })
+  }
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target
+    setEditModal((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    if (!editModal.partName?.trim()) {
+      setError('Part name is required.')
+      return
+    }
+    setEditSubmitting(true)
+    try {
+      await api.put(`/part-requests/${editModal.id}`, {
+        partName: editModal.partName.trim(),
+        description: editModal.description?.trim() || null,
+      })
+      setSuccess('Part request updated.')
+      setEditModal({ open: false, id: null, partName: '', description: '' })
+      await load()
+    } catch (e) {
+      setError(getErrorMessage(e, 'Could not update part request.'))
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  const handleCloseEdit = () => {
+    if (editSubmitting) return
+    setEditModal({ open: false, id: null, partName: '', description: '' })
+  }
+
+  const handleDelete = async (item) => {
+    const ok = window.confirm('Are you sure you want to delete this part request?')
+    if (!ok) return
+    setError('')
+    setSuccess('')
+    setDeletingId(item.id)
+    try {
+      await api.delete(`/part-requests/${item.id}`)
+      setSuccess('Part request deleted.')
+      await load()
+    } catch (e) {
+      setError(getErrorMessage(e, 'Could not delete part request.'))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -167,6 +232,7 @@ function PartRequests() {
                   <th>Description</th>
                   <th>Status</th>
                   <th>Created</th>
+                  <th className="num">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -178,6 +244,35 @@ function PartRequests() {
                       <span className={statusBadgeClass(row.status)}>{row.status || 'Unknown'}</span>
                     </td>
                     <td className="muted">{formatDateTime(row.createdAt)}</td>
+                    <td>
+                      {row.status === 'Pending' ? (
+                        <div className="actions">
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleOpenEdit(row)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            disabled={deletingId === row.id}
+                            onClick={() => handleDelete(row)}
+                          >
+                            {deletingId === row.id ? (
+                              <>
+                                <span className="spinner" aria-hidden="true" /> Delete
+                              </>
+                            ) : (
+                              'Delete'
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--color-text-soft)', fontSize: '0.85rem' }}>🔒</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -185,6 +280,68 @@ function PartRequests() {
           </div>
         )}
       </div>
+
+      {editModal.open ? (
+        <div className="modal-overlay" role="presentation" onClick={handleCloseEdit}>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-part-request-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2 id="edit-part-request-title" className="modal-title">Edit part request</h2>
+              <button type="button" className="modal-close" onClick={handleCloseEdit} aria-label="Close">
+                {'\u00D7'}
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group form-grid-full">
+                    <label className="form-label" htmlFor="editPartName">Part name</label>
+                    <input
+                      id="editPartName"
+                      type="text"
+                      name="partName"
+                      className="form-input"
+                      value={editModal.partName}
+                      onChange={handleEditChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group form-grid-full">
+                    <label className="form-label" htmlFor="editDescription">Description (optional)</label>
+                    <textarea
+                      id="editDescription"
+                      name="description"
+                      className="form-textarea"
+                      value={editModal.description}
+                      onChange={handleEditChange}
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={handleCloseEdit} disabled={editSubmitting}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={editSubmitting}>
+                  {editSubmitting ? (
+                    <>
+                      <span className="spinner" aria-hidden="true" /> Saving&hellip;
+                    </>
+                  ) : (
+                    'Save changes'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

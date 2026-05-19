@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import api from '../../services/api'
 
 function getErrorMessage(error, fallback) {
@@ -35,6 +37,161 @@ function monthName(month) {
   } catch {
     return String(month)
   }
+}
+
+function formatDateForDisplay(dateString) {
+  try {
+    const date = new Date(dateString + 'T00:00:00')
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  } catch {
+    return dateString
+  }
+}
+
+function generateFinancialReportPDF(reportType, reportData, selectedDate) {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  let yPosition = margin
+
+  // Colors
+  const darkBlue = [41, 128, 185]
+  const lightGray = [240, 240, 240]
+  const textDark = [33, 33, 33]
+  const textMuted = [120, 120, 120]
+
+  // Title and Branding
+  doc.setTextColor(...darkBlue)
+  doc.setFontSize(24)
+  doc.setFont(undefined, 'bold')
+  doc.text('GearTrack', margin, yPosition)
+  yPosition += 8
+
+  doc.setTextColor(...textDark)
+  doc.setFontSize(18)
+  doc.text('Financial Report', margin, yPosition)
+  yPosition += 12
+
+  // Subtitle with Report Type and Date
+  doc.setTextColor(...textMuted)
+  doc.setFontSize(11)
+  doc.setFont(undefined, 'normal')
+  const reportTypeLabel = reportType === 'daily' ? 'Daily' : reportType === 'monthly' ? 'Monthly' : 'Yearly'
+  doc.text(`Report Type: ${reportTypeLabel}`, margin, yPosition)
+  yPosition += 6
+
+  let dateLabel = ''
+  if (reportType === 'daily') {
+    dateLabel = formatDateForDisplay(selectedDate.date)
+  } else if (reportType === 'monthly') {
+    dateLabel = `${monthName(selectedDate.month)} ${selectedDate.year}`
+  } else {
+    dateLabel = String(selectedDate.year)
+  }
+  doc.text(`Period: ${dateLabel}`, margin, yPosition)
+  yPosition += 6
+
+  // Generated date and time
+  const now = new Date()
+  const generatedDateTime = now.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+  doc.text(`Generated: ${generatedDateTime}`, margin, yPosition)
+  yPosition += 12
+
+  // Prepare table data
+  let tableData = []
+  let totalRevenue = 0
+
+  if (reportType === 'daily' && reportData) {
+    tableData = [
+      [
+        formatDateForDisplay(selectedDate.date),
+        reportData.numberOfSales || 0,
+        formatMoney(reportData.totalSales),
+      ],
+    ]
+    totalRevenue = reportData.totalSales || 0
+  } else if (reportType === 'monthly' && reportData) {
+    tableData = [
+      [
+        dateLabel,
+        reportData.numberOfSales || 0,
+        formatMoney(reportData.totalSales),
+      ],
+    ]
+    totalRevenue = reportData.totalSales || 0
+  } else if (reportType === 'yearly' && reportData?.monthlyBreakdown) {
+    tableData = reportData.monthlyBreakdown.map((month) => [
+      monthName(month.month),
+      month.numberOfSales || 0,
+      formatMoney(month.totalSales),
+    ])
+    totalRevenue = reportData.monthlyBreakdown.reduce((sum, month) => sum + (month.totalSales || 0), 0)
+  }
+
+  // Add Total row
+  if (tableData.length > 0) {
+    tableData.push(['TOTAL', '', formatMoney(totalRevenue)])
+  }
+
+  // Generate table using autoTable
+  autoTable(doc, {
+    startY: yPosition,
+    head: [['Date', 'Invoice Count', 'Total Revenue']],
+    body: tableData,
+    headStyles: {
+      fillColor: darkBlue,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'left',
+      valign: 'middle',
+      lineColor: darkBlue,
+    },
+    bodyStyles: {
+      textColor: textDark,
+      lineColor: [200, 200, 200],
+    },
+    alternateRowStyles: {
+      fillColor: lightGray,
+    },
+    footStyles: {
+      fillColor: darkBlue,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      lineColor: darkBlue,
+    },
+    columnStyles: {
+      1: { halign: 'center' },
+      2: { halign: 'right' },
+    },
+    margin: { top: yPosition, left: margin, right: margin },
+    didDrawPage: (data) => {
+      // Footer
+      const pageCount = doc.getNumberOfPages()
+      doc.setFontSize(10)
+      doc.setTextColor(...textMuted)
+      doc.text(
+        `Page ${data.pageNumber} of ${pageCount}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: 'center' }
+      )
+    },
+  })
+
+  // Generate filename
+  const timestamp = now.toISOString().split('T')[0]
+  const filename = `GearTrack-Financial-Report-${reportTypeLabel}-${timestamp}.pdf`
+
+  // Save PDF
+  doc.save(filename)
 }
 
 const TABS = [
@@ -117,6 +274,30 @@ function FinancialReports() {
     const y = now.getFullYear()
     return Array.from({ length: 11 }, (_, i) => y - 5 + i)
   }, [now])
+
+  const exportDailyPDF = useCallback(() => {
+    if (!dailyReport) {
+      setError('No report data to export. Please load a report first.')
+      return
+    }
+    generateFinancialReportPDF('daily', dailyReport, { date: dailyDate })
+  }, [dailyReport, dailyDate])
+
+  const exportMonthlyPDF = useCallback(() => {
+    if (!monthlyReport) {
+      setError('No report data to export. Please load a report first.')
+      return
+    }
+    generateFinancialReportPDF('monthly', monthlyReport, { month: monthValue, year: monthYear })
+  }, [monthlyReport, monthValue, monthYear])
+
+  const exportYearlyPDF = useCallback(() => {
+    if (!yearlyReport) {
+      setError('No report data to export. Please load a report first.')
+      return
+    }
+    generateFinancialReportPDF('yearly', yearlyReport, { year: yearValue })
+  }, [yearlyReport, yearValue])
 
   const renderKpiCards = (r) => {
     if (!r) return null
@@ -206,9 +387,14 @@ function FinancialReports() {
             </div>
             <div className="form-group">
               <label className="form-label">&nbsp;</label>
-              <button type="button" className="btn btn-primary" onClick={() => void loadDaily()}>
-                Refresh
-              </button>
+              <div className="button-group" style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" className="btn btn-primary" onClick={() => void loadDaily()}>
+                  Refresh
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={exportDailyPDF}>
+                  Export PDF
+                </button>
+              </div>
             </div>
           </div>
         ) : null}
@@ -247,9 +433,14 @@ function FinancialReports() {
             </div>
             <div className="form-group">
               <label className="form-label">&nbsp;</label>
-              <button type="button" className="btn btn-primary" onClick={() => void loadMonthly()}>
-                Refresh
-              </button>
+              <div className="button-group" style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" className="btn btn-primary" onClick={() => void loadMonthly()}>
+                  Refresh
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={exportMonthlyPDF}>
+                  Export PDF
+                </button>
+              </div>
             </div>
           </div>
         ) : null}
@@ -273,9 +464,14 @@ function FinancialReports() {
             </div>
             <div className="form-group">
               <label className="form-label">&nbsp;</label>
-              <button type="button" className="btn btn-primary" onClick={() => void loadYearly()}>
-                Refresh
-              </button>
+              <div className="button-group" style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" className="btn btn-primary" onClick={() => void loadYearly()}>
+                  Refresh
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={exportYearlyPDF}>
+                  Export PDF
+                </button>
+              </div>
             </div>
           </div>
         ) : null}

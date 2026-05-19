@@ -99,7 +99,7 @@ public class VendorController : ControllerBase
 
             return NoContent();
         }
-        catch (InvalidOperationException ex)
+        catch (backend.Exceptions.ReferencedEntityException ex)
         {
             return Conflict(ex.Message);
         }

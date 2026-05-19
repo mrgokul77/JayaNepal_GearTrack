@@ -1,4 +1,5 @@
 using backend.DTOs;
+using backend.Exceptions;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -109,5 +110,28 @@ public class CustomerController : ControllerBase
         }
 
         return Ok(customer);
+    }
+
+    /// <summary>Deletes a customer profile and linked account if there are no blocking references.</summary>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
+        {
+            var deleted = await _customerService.DeleteCustomerAsync(id);
+            if (!deleted)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+        catch (ReferencedEntityException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 }

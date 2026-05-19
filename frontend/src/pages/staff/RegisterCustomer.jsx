@@ -70,7 +70,11 @@ function RegisterCustomer() {
       setCustomer(initialCustomer)
       setVehicle({ ...initialVehicle, year: new Date().getFullYear() })
     } catch (requestError) {
-      setError(getErrorMessage(requestError, 'Could not complete registration. Please check the form and try again.'))
+      if (requestError.response?.status === 400) {
+        setError(getErrorMessage(requestError, 'A customer with this email already exists.'))
+      } else {
+        setError(getErrorMessage(requestError, 'Could not complete registration. Please check the form and try again.'))
+      }
     } finally {
       setIsSubmitting(false)
     }

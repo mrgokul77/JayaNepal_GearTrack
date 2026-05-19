@@ -2,6 +2,7 @@ using backend.DTOs;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using backend.Exceptions;
 
 namespace backend.Controllers;
 
@@ -100,7 +101,14 @@ public class VehiclePartsController : ControllerBase
             return NotFound();
         }
 
-        await _service.DeleteAsync(id);
-        return NoContent();
+        try
+        {
+            await _service.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (ReferencedEntityException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 }

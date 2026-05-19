@@ -21,3 +21,9 @@ public class UpdatePartRequestStatusDto
 {
     public string Status { get; set; } = string.Empty;
 }
+
+public class UpdatePartRequestDto
+{
+    public string PartName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+}

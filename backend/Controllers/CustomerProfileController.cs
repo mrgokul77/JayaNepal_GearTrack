@@ -195,6 +195,36 @@ public class CustomerProfileController : ControllerBase
         return Ok(MapVehicle(vehicle));
     }
 
+    [HttpDelete("vehicles/{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteVehicle(int id)
+    {
+        if (!TryResolveUserId(out var userId))
+        {
+            return Unauthorized("Missing or invalid user id in token.");
+        }
+
+        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == userId);
+        if (customer is null)
+        {
+            return NotFound("Profile not found.");
+        }
+
+        var vehicle = await _db.Vehicles.FirstOrDefaultAsync(v => v.Id == id && v.CustomerId == customer.Id);
+        if (vehicle is null)
+        {
+            return NotFound();
+        }
+
+        _db.Vehicles.Remove(vehicle);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     /// <summary>
     /// Resolves the application user id from the JWT. Checks multiple claim types because inbound JWT claim mapping
     /// can vary by host framework version (<c>sub</c> vs <see cref="ClaimTypes.NameIdentifier"/>).

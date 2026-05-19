@@ -55,6 +55,7 @@ function SalesInvoice() {
   const [listLoading, setListLoading] = useState(true)
   const [sendingEmailInvoiceId, setSendingEmailInvoiceId] = useState(null)
   const [emailFeedback, setEmailFeedback] = useState(null)
+  const [markingPaidId, setMarkingPaidId] = useState(null)
 
   const loadLists = useCallback(async () => {
     setListLoading(true)
@@ -171,6 +172,21 @@ function SalesInvoice() {
       })
     } finally {
       setSendingEmailInvoiceId(null)
+    }
+  }
+
+  const handleMarkPaid = async (invoiceId) => {
+    setError('')
+    setMarkingPaidId(invoiceId)
+    try {
+      const { data } = await api.patch(`/sales-invoices/${invoiceId}/mark-paid`)
+      console.log('Marked paid response:', data)
+      setInvoices((prev) => prev.map((inv) => (inv.id === invoiceId ? { ...inv, isPaid: data?.isPaid ?? true } : inv)))
+    } catch (e) {
+      console.error('Error marking paid', e)
+      setError(getErrorMessage(e, 'Could not mark invoice as paid.'))
+    } finally {
+      setMarkingPaidId(null)
     }
   }
 
@@ -380,20 +396,40 @@ function SalesInvoice() {
                       </td>
                       <td className="num"><strong>{formatMoney(due)}</strong></td>
                       <td>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => void handleSendInvoiceEmail(inv.id)}
-                          disabled={sendingThis}
-                        >
-                          {sendingThis ? (
-                            <>
-                              <span className="spinner" aria-hidden="true" /> Sending&hellip;
-                            </>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => void handleSendInvoiceEmail(inv.id)}
+                            disabled={sendingThis}
+                          >
+                            {sendingThis ? (
+                              <>
+                                <span className="spinner" aria-hidden="true" /> Sending&hellip;
+                              </>
+                            ) : (
+                              <>{'\u{1F4E7}'} Email</>
+                            )}
+                          </button>
+                          {inv.isPaid ? (
+                            <span className="badge badge-success">Paid</span>
                           ) : (
-                            <>{'\u{1F4E7}'} Email</>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => void handleMarkPaid(inv.id)}
+                              disabled={markingPaidId === inv.id}
+                            >
+                              {markingPaidId === inv.id ? (
+                                <>
+                                  <span className="spinner" aria-hidden="true" /> Marking&hellip;
+                                </>
+                              ) : (
+                                'Mark as Paid'
+                              )}
+                            </button>
                           )}
-                        </button>
+                        </div>
                       </td>
                     </tr>
                   )

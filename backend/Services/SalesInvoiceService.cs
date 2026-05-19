@@ -192,6 +192,7 @@ public class SalesInvoiceService : ISalesInvoiceService
             TotalAmount = s.TotalAmount,
             DiscountApplied = s.DiscountApplied,
             SaleDate = s.SaleDate,
+            IsPaid = s.IsPaid,
             Items = itemDtos,
         };
     }

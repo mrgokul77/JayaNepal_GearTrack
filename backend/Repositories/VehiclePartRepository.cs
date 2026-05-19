@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
+using backend.Exceptions;
 
 namespace backend.Repositories;
 
@@ -46,7 +47,20 @@ public class VehiclePartRepository : IVehiclePartRepository
         if (part != null)
         {
             _dbContext.VehicleParts.Remove(part);
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                var innerMsg = ex.InnerException?.Message ?? string.Empty;
+                if (innerMsg.Contains("23503") || innerMsg.Contains("violates foreign key constraint"))
+                {
+                    throw new ReferencedEntityException("This part cannot be deleted because it is referenced in existing invoices.");
+                }
+
+                throw;
+            }
         }
     }
 

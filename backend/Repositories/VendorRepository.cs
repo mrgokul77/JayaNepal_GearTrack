@@ -57,7 +57,21 @@ public class VendorRepository : IVendorRepository
         }
 
         _dbContext.Vendors.Remove(entity);
-        await _dbContext.SaveChangesAsync();
-        return true;
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException ex)
+        {
+            var innerMsg = ex.InnerException?.Message ?? string.Empty;
+            if (innerMsg.Contains("23503") || innerMsg.Contains("violates foreign key constraint"))
+            {
+                throw new backend.Exceptions.ReferencedEntityException(
+                    "This vendor cannot be deleted because it has parts or invoices linked to it.");
+            }
+
+            throw;
+        }
     }
 }
