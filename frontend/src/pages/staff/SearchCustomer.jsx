@@ -70,6 +70,26 @@ function SearchCustomer() {
     void runSearch()
   }
 
+  const handleDeleteCustomer = async (row) => {
+    const ok = window.confirm('Are you sure you want to delete this customer?')
+    if (!ok) return
+
+    setError('')
+    try {
+      await api.delete(`/customers/${row.id}`)
+      setResults((prev) => prev.filter((c) => c.id !== row.id))
+      if (selected?.id === row.id) {
+        setSelected(null)
+      }
+    } catch (requestError) {
+      if (requestError.response?.status === 409) {
+        setError('This customer cannot be deleted because they have existing records linked to them.')
+      } else {
+        setError(getErrorMessage(requestError, 'Could not delete customer.'))
+      }
+    }
+  }
+
   const showEmptyState = hasSearched && !loading && !error && results.length === 0
 
   return (
@@ -124,7 +144,6 @@ function SearchCustomer() {
             <table className="table table-striped table-hover">
               <thead>
                 <tr>
-                  <th>Customer ID</th>
                   <th>Full name</th>
                   <th>Phone</th>
                   <th>Email</th>
@@ -139,21 +158,32 @@ function SearchCustomer() {
                     tabIndex={0}
                     onKeyDown={(e) => e.key === 'Enter' && setSelected(row)}
                   >
-                    <td><strong>#{row.id}</strong></td>
                     <td><strong>{row.fullName}</strong></td>
                     <td>{row.phone}</td>
                     <td>{row.email}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-primary"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/staff/customer-history/${row.id}`)
-                        }}
-                      >
-                        View History
-                      </button>
+                      <div className="actions">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/staff/customer-history/${row.id}`)
+                          }}
+                        >
+                          View History
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void handleDeleteCustomer(row)
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -38,7 +38,7 @@ public class CustomerService : ICustomerService
         var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
         if (await _dbContext.Users.AnyAsync(u => u.Email == normalizedEmail))
         {
-            throw new InvalidOperationException("A user with this email already exists.");
+            throw new InvalidOperationException("A customer with this email already exists.");
         }
 
         if (await _customerRepository.GetByEmailAsync(normalizedEmail) is not null)
@@ -111,6 +111,12 @@ public class CustomerService : ICustomerService
 
         var entities = await _customerRepository.SearchAsync(trimmed);
         return entities.Select(MapToResponse).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteCustomerAsync(int id)
+    {
+        return await _customerRepository.DeleteAsync(id);
     }
 
     /// <inheritdoc />

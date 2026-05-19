@@ -26,4 +26,7 @@ public interface ICustomerService
     /// <exception cref="ArgumentNullException">When <paramref name="query"/> is null.</exception>
     /// <exception cref="ArgumentException">When the query exceeds allowed length.</exception>
     Task<List<CustomerResponseDto>> SearchCustomersAsync(string query);
+
+    /// <summary>Deletes a customer by id.</summary>
+    Task<bool> DeleteCustomerAsync(int id);
 }

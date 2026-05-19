@@ -24,4 +24,7 @@ public interface ICustomerRepository
     /// Each customer is returned once with all vehicles included.
     /// </summary>
     Task<List<Customer>> SearchAsync(string query);
+
+    /// <summary>Deletes a customer profile (and linked user account when present).</summary>
+    Task<bool> DeleteAsync(int id);
 }
