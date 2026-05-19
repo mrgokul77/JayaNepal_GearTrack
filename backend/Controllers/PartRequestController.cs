@@ -142,6 +142,89 @@ public class PartRequestController : ControllerBase
         return Ok(Map(entity));
     }
 
+    /// <summary>Customer edits their own Pending part request.</summary>
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Customer")]
+    [ProducesResponseType(typeof(PartRequestResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PartRequestResponseDto>> Update(int id, [FromBody] UpdatePartRequestDto dto)
+    {
+        var resolved = await ResolveCustomerAsync();
+        if (resolved.Error is not null)
+        {
+            return resolved.Error;
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.PartName))
+        {
+            return BadRequest("Part name is required.");
+        }
+
+        var entity = await _db.PartRequests.FirstOrDefaultAsync(p => p.Id == id);
+        if (entity is null)
+        {
+            return NotFound("Part request not found.");
+        }
+
+        if (entity.CustomerId != resolved.CustomerId)
+        {
+            return Forbid();
+        }
+
+        if (entity.Status != "Pending")
+        {
+            return Forbid();
+        }
+
+        entity.PartName = dto.PartName.Trim();
+        entity.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
+
+        _db.PartRequests.Update(entity);
+        await _db.SaveChangesAsync();
+
+        return Ok(Map(entity));
+    }
+
+    /// <summary>Customer deletes their own Pending part request.</summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Customer")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var resolved = await ResolveCustomerAsync();
+        if (resolved.Error is not null)
+        {
+            return resolved.Error;
+        }
+
+        var entity = await _db.PartRequests.FirstOrDefaultAsync(p => p.Id == id);
+        if (entity is null)
+        {
+            return NotFound("Part request not found.");
+        }
+
+        if (entity.CustomerId != resolved.CustomerId)
+        {
+            return Forbid();
+        }
+
+        if (entity.Status != "Pending")
+        {
+            return Forbid();
+        }
+
+        _db.PartRequests.Remove(entity);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     private async Task<(ActionResult? Error, int CustomerId)> ResolveCustomerAsync()
     {
         if (!TryResolveUserId(out var userId))
