@@ -187,8 +187,14 @@ public class StaffController : ControllerBase
         {
             await _context.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex)
         {
+            var innerMsg = ex.InnerException?.Message ?? string.Empty;
+            if (innerMsg.Contains("23503") || innerMsg.Contains("violates foreign key constraint"))
+            {
+                return Conflict("This staff member cannot be deleted because they have existing sales invoices linked to them.");
+            }
+
             return Conflict("This account is referenced by other records and cannot be deleted.");
         }
 

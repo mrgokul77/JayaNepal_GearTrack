@@ -72,15 +72,7 @@ public class VendorService : IVendorService
     /// <inheritdoc />
     public async Task<bool> DeleteVendorAsync(int id)
     {
-        try
-        {
-            return await _vendorRepository.DeleteAsync(id);
-        }
-        catch (DbUpdateException)
-        {
-            throw new InvalidOperationException(
-                "This vendor cannot be deleted while vehicle parts or purchase invoices still reference it.");
-        }
+        return await _vendorRepository.DeleteAsync(id);
     }
 
     private static void ValidateVendorFields(string name, string phone, string email, string? address)

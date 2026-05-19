@@ -50,7 +50,20 @@ public class SalesInvoiceController : ControllerBase
 
         entity.IsPaid = true;
         _dbContext.SalesInvoices.Update(entity);
-        await _dbContext.SaveChangesAsync();
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            var innerMsg = ex.InnerException?.Message ?? string.Empty;
+            if (innerMsg.Contains("23503") || innerMsg.Contains("violates foreign key constraint"))
+            {
+                return Conflict("This sales invoice cannot be updated because it is referenced by other records.");
+            }
+
+            throw;
+        }
 
         var dto = await _salesInvoiceService.GetByIdAsync(id);
         return Ok(dto);
