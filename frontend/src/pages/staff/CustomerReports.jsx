@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import api from '../../services/api'
 
 function getErrorMessage(error, fallback) {
@@ -33,6 +35,162 @@ const TABS = [
   { id: 'high', label: 'High spenders' },
   { id: 'pending', label: 'Pending credits' },
 ]
+
+function generateCustomerReportPDF(reportType, data) {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  let yPosition = margin
+
+  // Colors
+  const darkBlue = [41, 128, 185]
+  const lightGray = [240, 240, 240]
+  const textDark = [33, 33, 33]
+  const textMuted = [120, 120, 120]
+
+  // Title and Branding
+  doc.setTextColor(...darkBlue)
+  doc.setFontSize(18)
+  doc.setFont(undefined, 'bold')
+  
+  if (reportType === 'regular') {
+    doc.text('GearTrack - Regular Customers Report', margin, yPosition)
+  } else if (reportType === 'high') {
+    doc.text('GearTrack - High Spenders Report', margin, yPosition)
+  } else if (reportType === 'pending') {
+    doc.text('GearTrack - Pending Credits Report', margin, yPosition)
+  }
+  yPosition += 10
+
+  // Generated date
+  doc.setTextColor(...textMuted)
+  doc.setFontSize(10)
+  doc.setFont(undefined, 'normal')
+  const now = new Date()
+  const generatedDateTime = now.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+  doc.text(`Generated: ${generatedDateTime}`, margin, yPosition)
+  yPosition += 8
+
+  // Prepare table data
+  let tableData = []
+  let totalCount = 0
+
+  if (reportType === 'regular' && Array.isArray(data)) {
+    tableData = data.map((row) => [
+      row.fullName || '\u2014',
+      row.email || '\u2014',
+      row.phone || '\u2014',
+      formatMoney(row.totalSpent),
+    ])
+    totalCount = data.length
+  } else if (reportType === 'high' && Array.isArray(data)) {
+    tableData = data.map((row, idx) => [
+      String(idx + 1),
+      row.fullName || '\u2014',
+      row.email || '\u2014',
+      row.phone || '\u2014',
+      formatMoney(row.totalSpent),
+    ])
+    totalCount = data.length
+  } else if (reportType === 'pending' && Array.isArray(data)) {
+    tableData = data.map((row) => [
+      row.fullName || '\u2014',
+      row.email || '\u2014',
+      row.phone || '\u2014',
+      formatMoney(row.totalUnpaid),
+    ])
+    totalCount = data.length
+  }
+
+  // Add total row
+  if (tableData.length > 0) {
+    if (reportType === 'regular') {
+      tableData.push(['TOTAL', '', '', `${totalCount} customers`])
+    } else if (reportType === 'high') {
+      tableData.push(['', 'TOTAL', '', '', `${totalCount} spenders`])
+    } else if (reportType === 'pending') {
+      tableData.push(['TOTAL', '', '', `${totalCount} customers`])
+    }
+  }
+
+  // Generate table using autoTable
+  let headColumns = []
+  if (reportType === 'regular') {
+    headColumns = ['Name', 'Email', 'Phone', 'Total Purchases']
+  } else if (reportType === 'high') {
+    headColumns = ['Rank', 'Name', 'Email', 'Phone', 'Total Spent']
+  } else if (reportType === 'pending') {
+    headColumns = ['Name', 'Email', 'Phone', 'Total Unpaid']
+  }
+
+  autoTable(doc, {
+    startY: yPosition,
+    head: [headColumns],
+    body: tableData,
+    headStyles: {
+      fillColor: darkBlue,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'left',
+      valign: 'middle',
+      lineColor: darkBlue,
+    },
+    bodyStyles: {
+      textColor: textDark,
+      lineColor: [200, 200, 200],
+    },
+    alternateRowStyles: {
+      fillColor: lightGray,
+    },
+    footStyles: {
+      fillColor: darkBlue,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      lineColor: darkBlue,
+    },
+    columnStyles: {
+      1: { halign: reportType === 'regular' ? 'left' : 'center' },
+      3: { halign: 'right' },
+      4: { halign: 'right' },
+    },
+    margin: { top: yPosition, left: margin, right: margin },
+    didDrawPage: (pageData) => {
+      // Footer with page numbers
+      const pageCount = doc.getNumberOfPages()
+      doc.setFontSize(10)
+      doc.setTextColor(...textMuted)
+      doc.text(
+        `Page ${pageData.pageNumber} of ${pageCount}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: 'center' }
+      )
+    },
+  })
+
+  // Generate filename
+  const timestamp = now.toISOString().split('T')[0]
+  let filename = 'GearTrack-Customer-Report'
+  if (reportType === 'regular') {
+    filename = `${filename}-Regular-Customers-${timestamp}.pdf`
+  } else if (reportType === 'high') {
+    filename = `${filename}-High-Spenders-${timestamp}.pdf`
+  } else if (reportType === 'pending') {
+    filename = `${filename}-Pending-Credits-${timestamp}.pdf`
+  }
+
+  // Save PDF
+  doc.save(filename)
+}
+
 
 function CustomerReports() {
   const [activeTab, setActiveTab] = useState('regular')
@@ -82,8 +240,26 @@ function CustomerReports() {
     void loadTab(activeTab)
   }, [activeTab, loadTab])
 
-  const handlePrint = () => {
-    window.print()
+  const handleExportPDF = () => {
+    if (activeTab === 'regular') {
+      if (!regularRows || regularRows.length === 0) {
+        alert('No data to export for Regular Customers. Please load the report first.')
+        return
+      }
+      generateCustomerReportPDF('regular', regularRows)
+    } else if (activeTab === 'high') {
+      if (!highRows || highRows.length === 0) {
+        alert('No data to export for High Spenders. Please load the report first.')
+        return
+      }
+      generateCustomerReportPDF('high', highRows)
+    } else if (activeTab === 'pending') {
+      if (!pendingRows || pendingRows.length === 0) {
+        alert('No data to export for Pending Credits. Please load the report first.')
+        return
+      }
+      generateCustomerReportPDF('pending', pendingRows)
+    }
   }
 
   const err = errorByTab[activeTab]
@@ -113,8 +289,8 @@ function CustomerReports() {
               'Refresh'
             )}
           </button>
-          <button type="button" className="btn btn-primary" onClick={handlePrint}>
-            <span aria-hidden="true">{'\u{1F5A8}'}</span> Print / Export
+          <button type="button" className="btn btn-primary" onClick={handleExportPDF}>
+            <span aria-hidden="true">{'\u{1F5A8}'}</span> Export PDF
           </button>
         </div>
       </div>
